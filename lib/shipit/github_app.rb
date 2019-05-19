@@ -45,12 +45,10 @@ module Shipit
       raise NotImplementedError, 'Handle App login / user'
     end
 
-    def api(install_id=nil)
-      @installation_id = install_id
-
+    def api(installation_id=nil)
       client = (Thread.current[:github_client] ||= new_client(access_token: token))
-      if client.access_token != token
-        client.access_token = token
+      if client.access_token != token(installation_id)
+        client.access_token = token(installation_id)
       end
       client
     end
@@ -64,11 +62,11 @@ module Shipit
       SecureCompare.secure_compare(signature, OpenSSL::HMAC.hexdigest(algorithm, webhook_secret, message))
     end
 
-    def token
+    def token(installation_id=nil)
       return 't0kEn' if Rails.env.test? # TODO: figure out something cleaner
       return unless private_key && app_id && installation_id
 
-      @token = @token.presence || synchronize { @token.presence || fetch_new_token }
+      @token = @token.presence || synchronize { @token.presence || fetch_new_token(installation_id) }
       @token.to_s
     end
 
@@ -132,9 +130,9 @@ module Shipit
       @app_id ||= @config.fetch(:app_id)
     end
 
-    def installation_id
-      @installation_id ||= @config.fetch(:installation_id)
-    end
+    # def installation_id
+    #   @installation_id ||= @config.fetch(:installation_id)
+    # end
 
     def private_key
       @private_key ||= @config.fetch(:private_key)

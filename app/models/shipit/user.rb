@@ -97,7 +97,7 @@ module Shipit
     end
 
     def refresh_from_github!
-      update!(github_user: find_across_organizations(github_id))
+      update!(github_user: self.class.find_across_organizations(github_id))
     rescue Octokit::NotFound
       identify_renamed_user!
     end
