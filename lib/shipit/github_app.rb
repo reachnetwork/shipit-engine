@@ -45,7 +45,9 @@ module Shipit
       raise NotImplementedError, 'Handle App login / user'
     end
 
-    def api
+    def api(install_id=nil)
+      @installation_id = install_id
+
       client = (Thread.current[:github_client] ||= new_client(access_token: token))
       if client.access_token != token
         client.access_token = token
@@ -70,8 +72,8 @@ module Shipit
       @token.to_s
     end
 
-    def fetch_new_token
-      Rails.cache.fetch('github:integration:access-token', expires_in: 50.minutes, race_condition_ttl: 10.minutes) do
+    def fetch_new_token(installation_id=nil)
+      Rails.cache.fetch("github:integration:#{installation_id}:access-token", expires_in: 50.minutes, race_condition_ttl: 10.minutes) do
         response = new_client(bearer_token: authentication_payload).create_app_installation_access_token(
           installation_id,
           accept: 'application/vnd.github.machine-man-preview+json',

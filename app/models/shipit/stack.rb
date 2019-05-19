@@ -350,7 +350,7 @@ module Shipit
 
     def github_commits
       handle_github_redirections do
-        Shipit.github.api.commits(github_repo_name, sha: branch)
+        Shipit.github.api(installation_id).commits(github_repo_name, sha: branch)
       end
     rescue Octokit::Conflict
       [] # Repository is empty...
@@ -368,9 +368,9 @@ module Shipit
     end
 
     def refresh_repository!
-      resource = Shipit.github.api.repo(github_repo_name)
+      resource = Shipit.github.api(installation_id).repo(github_repo_name)
       if resource.try(:message) == 'Moved Permanently'
-        resource = Shipit.github.api.get(resource.url)
+        resource = Shipit.github.api(installation_id).get(resource.url)
       end
       update!(repo_owner: resource.owner.login, repo_name: resource.name)
     end

@@ -29,6 +29,10 @@
           <%= f.text_field :deploy_url, placeholder: 'https://' %>
         </div>
         <div class="field-wrapper">
+          <%= f.label :installation_id %>
+          <%= f.text_field :installation_id, placeholder: '123456' %>
+        </div>
+        <div class="field-wrapper">
           <%= f.check_box :ignore_ci %>
           <%= f.label :ignore_ci, "Allow deploys regardless of CI status" %>
         </div>

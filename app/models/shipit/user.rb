@@ -14,7 +14,7 @@ module Shipit
 
     def self.find_or_create_by_login!(login)
       find_or_create_by!(login: login) do |user|
-        user.github_user = Shipit.github.api.user(login)
+        user.github_user = find_across_organizations(login)
       end
     end
 
@@ -53,6 +53,18 @@ module Shipit
       end
     end
 
+    def self.find_across_organizations(login)
+      installation_ids = Stack.distinct.pluck(:installation_id)
+      user = nil
+
+      installation_ids.each do |installation_id|
+        user = Shipit.github.api(installation_id).user(login)
+        break if user.present?
+      end
+
+      user
+    end
+
     alias_method :original_github_access_token, :github_access_token
     def github_access_token
       original_github_access_token
@@ -61,8 +73,8 @@ module Shipit
       nil
     end
 
-    def github_api
-      return Shipit.github.api unless github_access_token
+    def github_api(installation_id)
+      return Shipit.github.api(installation_id) unless github_access_token
 
       @github_api ||= Shipit.github.new_client(access_token: github_access_token)
     end
@@ -85,7 +97,7 @@ module Shipit
     end
 
     def refresh_from_github!
-      update!(github_user: Shipit.github.api.user(github_id))
+      update!(github_user: find_across_organizations(github_id))
     rescue Octokit::NotFound
       identify_renamed_user!
     end

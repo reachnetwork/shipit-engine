@@ -126,7 +126,7 @@ module Shipit
     end
 
     def refresh_statuses!
-      github_statuses = stack.handle_github_redirections { Shipit.github.api.statuses(github_repo_name, sha) }
+      github_statuses = stack.handle_github_redirections { Shipit.github.api(stack.installation_id).statuses(github_repo_name, sha) }
       github_statuses.each do |status|
         create_status_from_github!(status)
       end
@@ -140,7 +140,7 @@ module Shipit
 
     def refresh_check_runs!
       response = stack.handle_github_redirections do
-        Shipit.github.api.check_runs(github_repo_name, sha)
+        Shipit.github.api(stack.installation_id).check_runs(github_repo_name, sha)
       end
       response.check_runs.each do |check_run|
         create_or_update_check_run_from_github!(check_run)
@@ -246,7 +246,7 @@ module Shipit
     end
 
     def github_commit
-      @github_commit ||= Shipit.github.api.commit(github_repo_name, sha)
+      @github_commit ||= Shipit.github.api(stack.installation_id).commit(github_repo_name, sha)
     end
 
     def schedule_fetch_stats!

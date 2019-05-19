@@ -23,6 +23,11 @@
         </div>
 
         <div class="field-wrapper">
+          <%= f.label :installation_id %>
+          <%= f.text_field :installation_id, placeholder: '123456' %>
+        </div>
+
+        <div class="field-wrapper">
           <%= f.check_box :continuous_deployment %>
           <%= f.label :continuous_deployment, 'Enable continuous deployment' %>
         </div>

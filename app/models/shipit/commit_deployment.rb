@@ -21,9 +21,9 @@ module Shipit
       return if github_id?
 
       response = begin
-        create_deployment_on_github(author.github_api)
+        create_deployment_on_github(author.github_api(stack.installation_id))
       rescue Octokit::ClientError
-        raise if Shipit.github.api == author.github_api
+        raise if Shipit.github.api(stack.installation_id) == author.github_api(stack.installation_id)
         # If the deploy author didn't gave us the permission to create the deployment we falback the the main shipit
         # user.
         #
@@ -35,7 +35,7 @@ module Shipit
     end
 
     def pull_request_head
-      pull_request = Shipit.github.api.pull_request(stack.github_repo_name, commit.pull_request_number)
+      pull_request = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, commit.pull_request_number)
       pull_request.head.sha
     end
 

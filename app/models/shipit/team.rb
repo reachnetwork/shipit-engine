@@ -25,7 +25,12 @@ module Shipit
       end
 
       def find_team_on_github(organization, slug)
-        teams = Shipit::OctokitIterator.new { Shipit.github.api.org_teams(organization, per_page: 100) }
+        installation_ids = Stack.distinct.pluck(:installation_id)
+        teams = []
+
+        installation_ids.each do |installation_id|
+          teams = Shipit::OctokitIterator.new { Shipit.github.api(installation_id).org_teams(organization, per_page: 100) }
+        end
         teams.find { |t| t.slug == slug }
       rescue Octokit::NotFound
       end
@@ -40,7 +45,12 @@ module Shipit
     end
 
     def refresh_members!
-      github_members = Shipit::OctokitIterator.new(Shipit.github.api.get(api_url).rels[:members])
+      installation_ids = Stack.distinct.pluck(:installation_id)
+      github_members = []
+
+      installation_ids.each do |installation_id|
+        github_members += Shipit::OctokitIterator.new(Shipit.github.api(installation_id).get(api_url).rels[:members])
+      end
       members = github_members.map { |u| User.find_or_create_from_github(u) }
       self.members = members
       save!

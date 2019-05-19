@@ -106,7 +106,7 @@ module Shipit
     end
 
     def create_params
-      params.require(:stack).permit(:repo_name, :repo_owner, :environment, :branch, :deploy_url, :ignore_ci)
+      params.require(:stack).permit(:repo_name, :repo_owner, :environment, :branch, :deploy_url, :ignore_ci, :installation_id)
     end
 
     def update_params
@@ -116,6 +116,7 @@ module Shipit
         :continuous_deployment,
         :ignore_ci,
         :merge_queue_enabled,
+        :installation_id
       )
     end
   end
