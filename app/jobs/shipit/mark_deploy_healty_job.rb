@@ -4,6 +4,9 @@ module Shipit
 
     queue_as :default
 
+    self.timeout = 60
+    self.lock_timeout = 20
+
     def perform(deploy)
       return unless deploy.validating?
 

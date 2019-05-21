@@ -15,7 +15,7 @@ module Shipit
           lock_key(*arguments),
           Shipit.redis,
           expiration: self.class.timeout || DEFAULT_TIMEOUT,
-          timeout: self.class.lock_timeout || 0,
+          timeout: self.class.lock_timeout || 0
         )
         mutex.lock(&block)
       rescue Redis::Lock::LockTimeout
