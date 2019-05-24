@@ -66,13 +66,17 @@ module Shipit
       end
     end
 
-    def pull_request_link(pull_request_or_commit)
+    def pull_request_link(pull_request_or_commit, only_href=false)
       number = if pull_request_or_commit.respond_to?(:pull_request_number)
         pull_request_or_commit.pull_request_number
       else
         pull_request_or_commit.number
       end
-      link_to("##{number}", github_pull_request_url(pull_request_or_commit), target: '_blank', class: 'number')
+      if only_href
+        github_pull_request_url(pull_request_or_commit)
+      else
+        link_to("##{number}", github_pull_request_url(pull_request_or_commit), target: '_blank', class: 'number')
+      end
     end
 
     def render_raw_commit_id_link(commit)
