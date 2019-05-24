@@ -1,5 +1,9 @@
 <li class="pr" id="pr-<%= pull_request.id %>">
   <%= render 'shipit/shared/author', author: pull_request.merge_requested_by %>
+  <a href="<%= pull_request_link(pull_request) %>" class="status status--<%= pull_request.merge_status %>" data-tooltip="<%= pull_request.merge_status.titleize %>">
+    <i class="status__icon"></i>
+    <span class="visually-hidden"><%= pull_request.merge_status %></span>
+  </a>
   <div class="pr-details">
     <span class="pr-number">
       <%= pull_request_link(pull_request) %>
@@ -13,6 +17,7 @@
     </p>
     <p class="pr-meta">
       Enqueued <%= timeago_tag(pull_request.merge_requested_at, force: true) %>
+      <strong><%= pull_request.merge_status %></strong>
       <% if pull_request.revalidating? %>
         <em class="warning">Need revalidation.</em>
       <% elsif pull_request.rejected? %>

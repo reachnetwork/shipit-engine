@@ -212,7 +212,9 @@
 }
 
 .status--pending,
-[data-deploy-status='pending'] {
+.status--fetching,
+[data-deploy-status='pending'],
+[data-deploy-status='fetching'] {
   .status__icon {
     background-image: asset-data-url("pending.gif");
     background-size: 21px 5px;
@@ -241,7 +243,9 @@
 }
 
 .status--aborted,
-[data-deploy-status='aborted'] {
+.status--canceled,
+[data-deploy-status='aborted'],
+[data-deploy-status='canceled'] {
   border-color: $orange;
 
   .status__icon {
@@ -277,7 +281,9 @@
 }
 
 .status--success,
-[data-deploy-status='success'] {
+.status--merged,
+[data-deploy-status='success'],
+[data-deploy-status='merged'] {
   border-color: $green;
 
   .status__icon {
@@ -287,8 +293,10 @@
 
 .status--failure,
 .status--failed,
+.status--rejected,
 [data-deploy-status='failure'],
-[data-deploy-status='failed'] {
+[data-deploy-status='failed'],
+[data-deploy-status='rejected'] {
   border-color: $bright-red;
 
   .status__icon {
@@ -297,7 +305,9 @@
 }
 
 .status--error,
-[data-deploy-status='error'] {
+.status--revalidating,
+[data-deploy-status='error'],
+[data-deploy-status='revalidating'] {
   border-color: #333;
 
   .status__icon {
