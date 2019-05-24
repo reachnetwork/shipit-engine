@@ -1,7 +1,14 @@
 module Shipit
   class PullRequestsController < ShipitController
+    include Pagination
+
+    self.default_page_size = 20
+    self.default_order = {merge_requested_at: :desc}.freeze
+
     def index
-      @pull_requests = stack.pull_requests.queued
+      paginator = paginate(stack.pull_requests)
+      @pull_requests = paginator.to_a
+      @links = paginator.links
     end
 
     def create

@@ -15,6 +15,8 @@
       Enqueued <%= timeago_tag(pull_request.merge_requested_at, force: true) %>
       <% if pull_request.revalidating? %>
         <em class="warning">Need revalidation.</em>
+      <% elsif pull_request.rejected? %>
+        <em class="warning"><%= pull_request.rejection_reason %></em>
       <% end %>
     </p>
   </div>
@@ -22,8 +24,12 @@
     <div class="commit-actions">
       <%= button_to 'Confirm', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number), class: 'btn btn--warning', method: 'post' %>
     </div>
+    <div class="commit-actions">
+      <%= button_to 'Cancel', stack_pull_request_path(pull_request.stack, pull_request), class: 'btn btn--warning', method: 'delete' %>
+    </div>
+  <% elsif pull_request.rejected? || pull_request.canceled? %>
+    <div class="commit-actions">
+      <%= button_to 'Recheck', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number), class: 'btn btn--warning', method: 'post' %>
+    </div>
   <% end %>
-  <div class="commit-actions">
-    <%= button_to 'Cancel', stack_pull_request_path(pull_request.stack, pull_request), class: 'btn btn--warning', method: 'delete' %>
-  </div>
 </li>
