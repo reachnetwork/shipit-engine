@@ -46,7 +46,8 @@ module Shipit
     end
 
     def api(installation_id=nil)
-      client = new_client(access_token: token(installation_id))
+      Thread.current[:github_client] = new_client(access_token: token(installation_id))
+      client = Thread.current[:github_client]
       if client.access_token != token(installation_id)
         client.access_token = token(installation_id)
       end
