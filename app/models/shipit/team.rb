@@ -29,7 +29,7 @@ module Shipit
         teams = []
 
         installation_ids.each do |installation_id|
-          teams = Shipit::OctokitIterator.new(installation_id, { Shipit.github.api(installation_id).org_teams(organization, per_page: 100) })
+          teams = Shipit::OctokitIterator.new(installation_id, Shipit.github.api(installation_id).org_teams(organization, per_page: 100))
         end
         teams.find { |t| t.slug == slug }
       rescue Octokit::NotFound
