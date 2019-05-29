@@ -31,7 +31,7 @@ module Shipit
 
     def fetch_missing_commits(&block)
       commits = []
-      iterator = Shipit::FirstParentCommitsIterator.new(&block)
+      iterator = Shipit::FirstParentCommitsIterator.new(@stack.installation_id, &block)
       iterator.each_with_index do |commit, index|
         break if index >= MAX_FETCHED_COMMITS
 

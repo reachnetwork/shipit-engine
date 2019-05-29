@@ -2,12 +2,12 @@ module Shipit
   class OctokitIterator
     include Enumerable
 
-    def initialize(relation = nil)
+    def initialize(installation_id, relation=nil)
       if relation
         @response = relation.get(per_page: 100)
       else
-        yield Shipit.github.api
-        @response = Shipit.github.api.last_response
+        yield Shipit.github.api(installation_id)
+        @response = Shipit.github.api(installation_id).last_response
       end
     end
 
