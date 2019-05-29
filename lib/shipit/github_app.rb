@@ -46,12 +46,18 @@ module Shipit
     end
 
     def api(installation_id=nil)
-      Thread.current[:github_client] = new_client(access_token: token(installation_id))
-      client = Thread.current[:github_client]
+      client = new_client(access_token: token(installation_id))
       if client.access_token != token(installation_id)
         client.access_token = token(installation_id)
       end
-      client
+
+      if Thread.current[:github_client].blank? || Thread.current[:github_client].access_token != client.access_token
+        Thread.current[:github_client] = client
+
+        return client
+      end
+
+      Thread.current[:github_client]
     end
 
     def verify_webhook_signature(signature, message)
