@@ -73,7 +73,8 @@ module Shipit
       return 't0kEn' if Rails.env.test? # TODO: figure out something cleaner
       return unless private_key && app_id && installation_id
 
-      @token = @token.presence || synchronize { @token.presence || fetch_new_token(installation_id) }
+      # @token = @token.presence || synchronize { @token.presence || fetch_new_token(installation_id) }
+      @token = synchronize { fetch_new_token(installation_id) }
       @token.to_s
     end
 
