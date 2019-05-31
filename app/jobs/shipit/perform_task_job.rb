@@ -21,18 +21,18 @@ module Shipit
       checkout_repository
       perform_task
       @task.report_complete!
-      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "Deploy of #{stack.repo_name} completed!")
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "SUCCESS: Deploy of #{stack.repo_name.titleize} completed!")
     rescue Command::TimedOut => error
       @task.write("\n#{error.message}\n")
       @task.report_timeout!(error)
-      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "Deploy of #{stack.repo_name} timed out! #{deploy_link}")
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "ERROR: Deploy of #{stack.repo_name.titleize} timed out! #{deploy_link}")
     rescue Command::Error => error
       @task.write("\n#{error.message}\n")
       @task.report_failure!(error)
-      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "Deploy of #{stack.repo_name} failed! #{deploy_link}")
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "ERROR: Deploy of #{stack.repo_name.titleize} failed! #{deploy_link}")
     rescue StandardError => error
       @task.report_error!(error)
-      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "Deploy of #{stack.repo_name} errored! #{deploy_link}")
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "ERROR: Deploy of #{stack.repo_name.titleize} errored! #{deploy_link}")
     rescue StandardError => error
       @task.report_error!(error)
       raise
