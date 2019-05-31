@@ -175,6 +175,8 @@ module Shipit
         # branch was already deleted somehow
       end
       complete!
+      GithubSyncJob.perform_later(stack_id: stack.id)
+      ::SlackClient.async_send_msg(to: merge_requested_by.admin_user.slack_handle, message: "Your #{stack.github_repo_name} PR '#{title}' has been successfully merged!")
       return true
     rescue Octokit::MethodNotAllowed # merge conflict
       reject!('merge_conflict')

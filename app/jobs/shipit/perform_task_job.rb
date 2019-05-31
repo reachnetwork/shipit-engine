@@ -15,19 +15,25 @@ module Shipit
     end
 
     def run
+      stack = @task.stack
+      deploy_link = "Please view the deploy <a href='https://admin.optimal.com/shipit/#{stack.repo_owner}/#{stack.repo_name}/#{stack.environment}>here</a>"
       @task.run!
       checkout_repository
       perform_task
       @task.report_complete!
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "Deploy of #{stack.repo_name} completed!")
     rescue Command::TimedOut => error
       @task.write("\n#{error.message}\n")
       @task.report_timeout!(error)
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "Deploy of #{stack.repo_name} timed out! #{deploy_link}")
     rescue Command::Error => error
       @task.write("\n#{error.message}\n")
       @task.report_failure!(error)
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "Deploy of #{stack.repo_name} failed! #{deploy_link}")
     rescue StandardError => error
       @task.report_error!(error)
-    rescue Exception => error
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "Deploy of #{stack.repo_name} errored! #{deploy_link}")
+    rescue StandardError => error
       @task.report_error!(error)
       raise
     end

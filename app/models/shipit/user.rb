@@ -7,6 +7,7 @@ module Shipit
     has_many :authored_commits, class_name: :Commit, foreign_key: :author_id, inverse_of: :author
     has_many :commits, foreign_key: :committer_id, inverse_of: :committer
     has_many :tasks
+    belongs_to :admin_user, class_name: "::AdminUser", optional: true # parent projects needs to handle this
 
     validates :name, presence: true
 
