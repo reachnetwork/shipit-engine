@@ -28,6 +28,11 @@
         </div>
 
         <div class="field-wrapper">
+          <%= f.label :deploy_slack_channel %>
+          <%= f.text_field :deploy_slack_channel, placeholder: '#deploys' %>
+        </div>
+
+        <div class="field-wrapper">
           <%= f.check_box :continuous_deployment %>
           <%= f.label :continuous_deployment, 'Enable continuous deployment' %>
         </div>

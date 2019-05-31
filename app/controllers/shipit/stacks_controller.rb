@@ -116,7 +116,8 @@ module Shipit
         :continuous_deployment,
         :ignore_ci,
         :merge_queue_enabled,
-        :installation_id
+        :installation_id,
+        :deploy_slack_channel
       )
     end
   end
