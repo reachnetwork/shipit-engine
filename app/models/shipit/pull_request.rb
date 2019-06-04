@@ -285,11 +285,23 @@ module Shipit
     end
 
     def find_or_create_commit_from_github_by_sha!(sha, attributes)
+      retry_count = 0
       if commit = stack.commits.by_sha(sha)
         return commit
       else
-        github_commit = Shipit.github.api(stack.installation_id).commit(stack.github_repo_name, sha)
-        stack.commits.create_from_github!(github_commit, attributes)
+        begin
+          github_commit = Shipit.github.api(stack.installation_id).commit(stack.github_repo_name, sha)
+          stack.commits.create_from_github!(github_commit, attributes)
+        rescue Octokit::BadGateway,
+               Octokit::Unauthorized
+          sleep(15)
+
+          retry_count += 1
+
+          retry if retry_count <= 4
+
+          return
+        end
       end
     rescue ActiveRecord::RecordNotUnique
       retry

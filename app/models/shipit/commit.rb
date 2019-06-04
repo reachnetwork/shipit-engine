@@ -126,7 +126,21 @@ module Shipit
     end
 
     def refresh_statuses!
-      github_statuses = stack.handle_github_redirections { Shipit.github.api(stack.installation_id).statuses(github_repo_name, sha) }
+      retry_count = 0
+      github_statuses = stack.handle_github_redirections do
+        begin
+          Shipit.github.api(stack.installation_id).statuses(github_repo_name, sha)
+        rescue Octokit::BadGateway,
+               Octokit::Unauthorized
+          sleep(15)
+
+          retry_count += 1
+
+          retry if retry_count <= 4
+
+          return
+        end
+      end
       github_statuses.each do |status|
         create_status_from_github!(status)
       end
@@ -139,8 +153,20 @@ module Shipit
     end
 
     def refresh_check_runs!
+      retry_count = 0
       response = stack.handle_github_redirections do
-        Shipit.github.api(stack.installation_id).check_runs(github_repo_name, sha)
+        begin
+          Shipit.github.api(stack.installation_id).check_runs(github_repo_name, sha)
+        rescue Octokit::BadGateway,
+               Octokit::Unauthorized
+          sleep(15)
+
+          retry_count += 1
+
+          retry if retry_count <= 4
+
+          return
+        end
       end
       response.check_runs.each do |check_run|
         create_or_update_check_run_from_github!(check_run)
@@ -246,7 +272,19 @@ module Shipit
     end
 
     def github_commit
-      @github_commit ||= Shipit.github.api(stack.installation_id).commit(github_repo_name, sha)
+      retry_count = 0
+      begin
+        @github_commit ||= Shipit.github.api(stack.installation_id).commit(github_repo_name, sha)
+      rescue Octokit::BadGateway,
+             Octokit::Unauthorized
+        sleep(15)
+
+        retry_count += 1
+
+        retry if retry_count <= 4
+
+        return
+      end
     end
 
     def schedule_fetch_stats!
