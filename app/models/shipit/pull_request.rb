@@ -49,7 +49,7 @@ module Shipit
 
     scope :waiting, -> { where(merge_status: WAITING_STATUSES) }
     scope :pending, -> { where(merge_status: 'pending') }
-    scope :to_be_merged, -> { where("merge_status = 'pending' OR (merge_status = 'rejected' AND rejected_reason IN ('merge_conflict', 'ci_failing') AND pull_request.merge_requested_at)").order(merge_requested_at: :asc) }
+    scope :to_be_merged, -> { where("merge_status = 'pending' OR (merge_status = 'rejected' AND rejected_reason IN ('merge_conflict', 'ci_failing') AND pull_request.merge_requested_at >= NOW() - INTERVAL 1 DAY)").order(merge_requested_at: :asc) }
     scope :queued, -> { where(merge_status: QUEUED_STATUSES).order(merge_requested_at: :asc) }
 
     after_save :record_merge_status_change
@@ -132,6 +132,7 @@ module Shipit
       rescue ActiveRecord::RecordNotUnique
         retry
       end
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "#{user.admin_user.slack_handle} attempted to force merge #{stack.github_repo_name} #{stack.environment} PR '#{pull_request.title}'!") if force_merge
       pull_request.update!(merge_requested_by: user.presence)
       pull_request.retry! if pull_request.rejected? || pull_request.canceled? || pull_request.revalidating?
       pull_request.schedule_refresh!(force_merge)
