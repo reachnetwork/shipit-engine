@@ -19,7 +19,14 @@ module Shipit
 
       return false unless stack.allows_merges?
 
-      pull_requests.select(&:pending?).each do |pull_request|
+      pull_requests.select{ |pr|
+        pr.pending? ||
+          (
+            pr.rejected &&
+            ["merge_conflict", "ci_failing"].include?(pr.rejection_reason) &&
+            (pr.merge_requested_at + 1.day).future?
+          )
+      }.each do |pull_request|
         pull_request.refresh!
         next unless pull_request.all_status_checks_passed?
         begin

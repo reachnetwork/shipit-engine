@@ -49,7 +49,7 @@ module Shipit
 
     scope :waiting, -> { where(merge_status: WAITING_STATUSES) }
     scope :pending, -> { where(merge_status: 'pending') }
-    scope :to_be_merged, -> { pending.order(merge_requested_at: :asc) }
+    scope :to_be_merged, -> { where("merge_status = 'pending' OR (merge_status = 'rejected' AND rejected_reason IN ('merge_conflict', 'ci_failing') AND pull_request.merge_requested_at)").order(merge_requested_at: :asc) }
     scope :queued, -> { where(merge_status: QUEUED_STATUSES).order(merge_requested_at: :asc) }
 
     after_save :record_merge_status_change
@@ -119,7 +119,7 @@ module Shipit
       end
     end
 
-    def self.request_merge!(stack, number, user)
+    def self.request_merge!(stack, number, user, force_merge=false)
       now = Time.now.utc
       pull_request = begin
         create_with(
@@ -134,7 +134,7 @@ module Shipit
       end
       pull_request.update!(merge_requested_by: user.presence)
       pull_request.retry! if pull_request.rejected? || pull_request.canceled? || pull_request.revalidating?
-      pull_request.schedule_refresh!
+      pull_request.schedule_refresh!(force_merge)
       pull_request
     end
 
@@ -154,10 +154,10 @@ module Shipit
       false
     end
 
-    def merge!
-      raise InvalidTransition unless pending?
+    def merge!(force_merge=false)
+      raise InvalidTransition unless pending? || force_merge
 
-      raise NotReady if not_mergeable_yet?
+      raise NotReady if not_mergeable_yet? && !force_merge
 
       Shipit.github.api(stack.installation_id).merge_pull_request(
         stack.github_repo_name,
@@ -213,7 +213,7 @@ module Shipit
       mergeable.nil?
     end
 
-    def schedule_refresh!
+    def schedule_refresh!(force_merge=false)
       RefreshPullRequestJob.perform_later(self)
     end
 
