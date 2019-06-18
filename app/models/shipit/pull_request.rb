@@ -49,7 +49,7 @@ module Shipit
 
     scope :waiting, -> { where(merge_status: WAITING_STATUSES) }
     scope :pending, -> { where(merge_status: 'pending') }
-    scope :to_be_merged, -> { where("merge_status = 'pending' OR (merge_status = 'rejected' AND rejected_reason IN ('merge_conflict', 'ci_failing') AND pull_request.merge_requested_at >= NOW() - INTERVAL 1 DAY)").order(merge_requested_at: :asc) }
+    scope :to_be_merged, -> { where("pull_requests.merge_status = 'pending' OR (pull_requests.merge_status = 'rejected' AND pull_requests.rejection_reason IN ('merge_conflict', 'ci_failing') AND pull_requests.merge_requested_at >= NOW() - INTERVAL 1 DAY)").order(merge_requested_at: :asc) }
     scope :queued, -> { where(merge_status: QUEUED_STATUSES).order(merge_requested_at: :asc) }
 
     after_save :record_merge_status_change
