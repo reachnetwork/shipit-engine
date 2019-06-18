@@ -12,7 +12,7 @@ module Shipit
       pull_requests = stack.pull_requests.to_be_merged.to_a
       pull_requests.each do |pull_request|
         pull_request.refresh!
-        pull_request.reject_unless_mergeable!
+        pull_request.reject_unless_mergeable! unless pull_request.rejected?
         pull_request.cancel! if pull_request.closed?
         pull_request.revalidate! if pull_request.need_revalidation?
       end
