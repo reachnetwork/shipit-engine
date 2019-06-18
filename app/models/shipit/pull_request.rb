@@ -186,7 +186,7 @@ module Shipit
       ::SlackClient.async_send_msg(to: merge_requested_by.admin_user.slack_handle, message: "Your #{stack.github_repo_name} PR '#{title}' has been successfully merged!")
       return true
     rescue Octokit::MethodNotAllowed # merge conflict
-      reject!('merge_conflict')
+      reject!('merge_conflict') unless rejected?
       return false
     rescue Octokit::Conflict # shas didn't match, PR was updated.
       raise NotReady
