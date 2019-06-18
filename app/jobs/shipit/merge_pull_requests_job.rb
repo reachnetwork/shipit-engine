@@ -27,6 +27,7 @@ module Shipit
             (pr.merge_requested_at + 1.day).future?
           )
       }.each do |pull_request|
+        ::Honeybadger.context(pull_request_id: pull_request.id)
         pull_request.refresh!
         next unless pull_request.all_status_checks_passed?
         begin
