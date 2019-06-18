@@ -135,7 +135,13 @@ module Shipit
       ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "#{user.admin_user.slack_handle} attempted to force merge #{stack.github_repo_name} #{stack.environment} PR '#{pull_request.title}'!") if force_merge
       pull_request.update!(merge_requested_by: user.presence)
       pull_request.retry! if pull_request.rejected? || pull_request.canceled? || pull_request.revalidating?
-      pull_request.schedule_refresh!(force_merge)
+
+      if force_merge
+        pull_request.merge!(true)
+      else
+        pull_request.schedule_refresh!
+      end
+
       pull_request
     end
 
@@ -156,7 +162,7 @@ module Shipit
     end
 
     def merge!(force_merge=false)
-      raise InvalidTransition unless pending? || force_merge
+      raise InvalidTransition unless pending? || force_merge || (rejected? && ["merge_conflict", "ci_failing"].include?(rejection_reason))
 
       raise NotReady if not_mergeable_yet? && !force_merge
 
