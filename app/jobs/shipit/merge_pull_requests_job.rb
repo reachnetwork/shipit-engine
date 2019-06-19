@@ -14,7 +14,7 @@ module Shipit
         pull_request.refresh!
         pull_request.reject_unless_mergeable! unless pull_request.rejected?
         pull_request.cancel! if pull_request.closed?
-        pull_request.revalidate! if pull_request.need_revalidation? && !pull_request.canceled?
+        pull_request.revalidate! if pull_request.need_revalidation? && !pull_request.canceled? && !pull_request.rejected?
       end
 
       return false unless stack.allows_merges?
