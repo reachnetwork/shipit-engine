@@ -1,5 +1,5 @@
 module Shipit
-  class Delivery < ActiveRecord::Base
+  class Delivery < ApplicationRecord
     STATUSES = %w(pending scheduled sent).freeze
     enum status: STATUSES.zip(STATUSES).to_h
 

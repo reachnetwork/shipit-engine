@@ -1,5 +1,5 @@
 module Shipit
-  class User < ActiveRecord::Base
+  class User < ApplicationRecord
     DEFAULT_AVATAR = URI.parse('https://avatars.githubusercontent.com/u/583231?')
 
     has_many :memberships

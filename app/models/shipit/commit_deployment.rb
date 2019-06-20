@@ -1,5 +1,5 @@
 module Shipit
-  class CommitDeployment < ActiveRecord::Base
+  class CommitDeployment < ApplicationRecord
     belongs_to :commit
     belongs_to :task
     has_many :statuses, dependent: :destroy, class_name: 'CommitDeploymentStatus'

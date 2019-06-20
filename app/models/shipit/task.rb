@@ -1,5 +1,5 @@
 module Shipit
-  class Task < ActiveRecord::Base
+  class Task < ApplicationRecord
     include DeferredTouch
 
     ConcurrentTaskRunning = Class.new(StandardError)

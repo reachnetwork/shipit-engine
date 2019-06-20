@@ -1,5 +1,5 @@
 module Shipit
-  class Commit < ActiveRecord::Base
+  class Commit < ApplicationRecord
     include DeferredTouch
 
     AmbiguousRevision = Class.new(StandardError)

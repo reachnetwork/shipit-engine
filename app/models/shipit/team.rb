@@ -1,5 +1,5 @@
 module Shipit
-  class Team < ActiveRecord::Base
+  class Team < ApplicationRecord
     REQUIRED_HOOKS = %i(membership).freeze
 
     has_many :memberships

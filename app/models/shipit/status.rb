@@ -1,5 +1,5 @@
 module Shipit
-  class Status < ActiveRecord::Base
+  class Status < ApplicationRecord
     include Common
     include DeferredTouch
 

@@ -1,5 +1,5 @@
 module Shipit
-  class CommitDeploymentStatus < ActiveRecord::Base
+  class CommitDeploymentStatus < ApplicationRecord
     belongs_to :commit_deployment
 
     after_commit :schedule_create_on_github, on: :create

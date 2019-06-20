@@ -1,5 +1,5 @@
 module Shipit
-  class Membership < ActiveRecord::Base
+  class Membership < ApplicationRecord
     belongs_to :team, required: true
     belongs_to :user, required: true
 

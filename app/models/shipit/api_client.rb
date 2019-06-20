@@ -1,5 +1,5 @@
 module Shipit
-  class ApiClient < ActiveRecord::Base
+  class ApiClient < ApplicationRecord
     InsufficientPermission = Class.new(StandardError)
 
     belongs_to :creator, class_name: 'User'

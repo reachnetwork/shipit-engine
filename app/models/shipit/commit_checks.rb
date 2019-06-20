@@ -1,5 +1,5 @@
 module Shipit
-  class CommitChecks < EphemeralCommitChecks
+  class CommitChecks < ApplicationRecord
     OUTPUT_TTL = 10.minutes.to_i
     FINAL_STATUSES = %w(failed error success).freeze
 

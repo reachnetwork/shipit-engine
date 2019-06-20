@@ -1,5 +1,5 @@
 module Shipit
-  class GithubHook < ActiveRecord::Base
+  class GithubHook < ApplicationRecord
     # TODO: app-migration, delete class
     belongs_to :stack, required: false # Required for fixtures
 
