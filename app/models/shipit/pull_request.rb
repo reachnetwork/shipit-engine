@@ -169,9 +169,9 @@ module Shipit
       client = force_merge ? Octokit::Client.new(access_token: ENV['CAPUSER_GITHUB_OAUTH_TOKEN']) : Shipit.github.api(stack.installation_id)
       client.merge_pull_request(
         stack.github_repo_name,
-        pr.number,
-        pr.merge_message,
-        sha: pr.head.sha,
+        number,
+        merge_message,
+        sha: head.sha,
         commit_message: 'Merged by Shipit',
         merge_method: stack.merge_method,
       )
