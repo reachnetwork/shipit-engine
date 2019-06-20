@@ -349,11 +349,12 @@ module Shipit
     end
 
     def github_commits
-      handle_github_redirections do
-        Shipit.github.api(installation_id).commits(github_repo_name, sha: branch)
+      rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
+        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false, return_value_on_error: []) do
+        handle_github_redirections do
+          Shipit.github.api(installation_id).commits(github_repo_name, sha: branch)
+        end
       end
-    rescue Octokit::Conflict
-      [] # Repository is empty...
     end
 
     def handle_github_redirections

@@ -85,9 +85,13 @@ module Shipit
       touches = deferred_touches.map { |m, fk, a| [m, self[fk], a].join('|') }
       Shipit.redis.sadd(SET_KEY, touches)
       if DeferredTouch.enabled
-        Rails.cache.fetch(CACHE_KEY, expires_in: THROTTLE_TTL) do
-          DeferredTouchJob.perform_later
-          true
+        begin
+          Rails.cache.fetch(CACHE_KEY, expires_in: THROTTLE_TTL) do
+            DeferredTouchJob.perform_later
+            true
+          end
+        rescue Errno::ENOENT
+          return
         end
       else
         DeferredTouch.touch_now!

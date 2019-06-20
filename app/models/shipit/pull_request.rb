@@ -132,7 +132,7 @@ module Shipit
       rescue ActiveRecord::RecordNotUnique
         retry
       end
-      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "#{user.admin_user.slack_handle} attempted to force merge #{stack.github_repo_name} #{stack.environment} PR '#{pull_request.title}'!") if force_merge
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "<#{user.admin_user.slack_handle}> attempted to force merge #{stack.github_repo_name} #{stack.environment} PR '#{pull_request.title}'!") if force_merge
       pull_request.update!(merge_requested_by: user.presence)
       pull_request.retry! if pull_request.rejected? || pull_request.canceled? || pull_request.revalidating?
 
@@ -166,22 +166,24 @@ module Shipit
 
       raise NotReady if not_mergeable_yet? && !force_merge
 
-      Shipit.github.api(stack.installation_id).merge_pull_request(
+      client = force_merge ? Octokit::Client.new(access_token: ENV['CAPUSER_GITHUB_OAUTH_TOKEN']) : Shipit.github.api(stack.installation_id)
+      client.merge_pull_request(
         stack.github_repo_name,
-        number,
-        merge_message,
-        sha: head.sha,
+        pr.number,
+        pr.merge_message,
+        sha: pr.head.sha,
         commit_message: 'Merged by Shipit',
         merge_method: stack.merge_method,
       )
       begin
-        if Shipit.github.api(stack.installation_id).pull_requests(stack.github_repo_name, base: branch).empty?
-          Shipit.github.api(stack.installation_id).delete_branch(stack.github_repo_name, branch)
+        if client.pull_requests(stack.github_repo_name, base: branch).empty?
+          client.delete_branch(stack.github_repo_name, branch)
         end
       rescue Octokit::UnprocessableEntity
         # branch was already deleted somehow
       end
       complete!
+      update_attributes(force_merge_requested_at: Time.current, force_merge_requested_by: user.presence)
       GithubSyncJob.perform_later(stack_id: stack.id)
       ::SlackClient.async_send_msg(to: merge_requested_by.admin_user.slack_handle, message: "Your #{stack.github_repo_name} PR '#{title}' has been successfully merged!")
       return true
@@ -233,7 +235,10 @@ module Shipit
     end
 
     def refresh!
-      update!(github_pull_request: Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, number))
+      rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
+        Octokit::Unauthorized, Octokit::InternalServerError], retries_exhausted_raises_error: false) do
+        update!(github_pull_request: Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, number))
+      end
       head.refresh_statuses!
       fetched! if fetching?
       @comparison = nil
@@ -296,18 +301,10 @@ module Shipit
       if commit = stack.commits.by_sha(sha)
         return commit
       else
-        begin
+        rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
+          Octokit::Unauthorized, Octokit::InternalServerError], retries_exhausted_raises_error: false) do
           github_commit = Shipit.github.api(stack.installation_id).commit(stack.github_repo_name, sha)
           stack.commits.create_from_github!(github_commit, attributes)
-        rescue Octokit::BadGateway,
-               Octokit::Unauthorized
-          sleep(15)
-
-          retry_count += 1
-
-          retry if retry_count <= 4
-
-          return
         end
       end
     rescue ActiveRecord::RecordNotUnique

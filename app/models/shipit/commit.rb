@@ -128,17 +128,9 @@ module Shipit
     def refresh_statuses!
       retry_count = 0
       github_statuses = stack.handle_github_redirections do
-        begin
+        rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
+          Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false) do
           Shipit.github.api(stack.installation_id).statuses(github_repo_name, sha)
-        rescue Octokit::BadGateway,
-               Octokit::Unauthorized
-          sleep(15)
-
-          retry_count += 1
-
-          retry if retry_count <= 4
-
-          return
         end
       end
       github_statuses.each do |status|
@@ -155,17 +147,9 @@ module Shipit
     def refresh_check_runs!
       retry_count = 0
       response = stack.handle_github_redirections do
-        begin
+        rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
+          Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false) do
           Shipit.github.api(stack.installation_id).check_runs(github_repo_name, sha)
-        rescue Octokit::BadGateway,
-               Octokit::Unauthorized
-          sleep(15)
-
-          retry_count += 1
-
-          retry if retry_count <= 4
-
-          return
         end
       end
       response.check_runs.each do |check_run|
@@ -273,17 +257,9 @@ module Shipit
 
     def github_commit
       retry_count = 0
-      begin
+      rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
+        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false) do
         @github_commit ||= Shipit.github.api(stack.installation_id).commit(github_repo_name, sha)
-      rescue Octokit::BadGateway,
-             Octokit::Unauthorized
-        sleep(15)
-
-        retry_count += 1
-
-        retry if retry_count <= 4
-
-        return
       end
     end
 

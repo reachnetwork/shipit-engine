@@ -11,6 +11,7 @@ module Shipit
     def perform(stack)
       pull_requests = stack.pull_requests.to_be_merged.to_a
       pull_requests.each do |pull_request|
+        pull_request.retry! unless pull_request.pending?
         pull_request.refresh!
         pull_request.reject_unless_mergeable! unless pull_request.rejected?
         pull_request.cancel! if pull_request.closed?
