@@ -138,6 +138,7 @@ module Shipit
 
       if force_merge
         pull_request.merge!(true)
+        pull_request.update_attributes(force_merge_requested_at: Time.current, force_merge_requested_by: user.presence)
       else
         pull_request.schedule_refresh!
       end
@@ -183,7 +184,6 @@ module Shipit
         # branch was already deleted somehow
       end
       complete!
-      update_attributes(force_merge_requested_at: Time.current, force_merge_requested_by: user.presence)
       GithubSyncJob.perform_later(stack_id: stack.id)
       ::SlackClient.async_send_msg(to: merge_requested_by.admin_user.slack_handle, message: "Your #{stack.github_repo_name} PR '#{title}' has been successfully merged!")
       return true
