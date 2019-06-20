@@ -1,5 +1,5 @@
 module Shipit
-  class ReleaseStatus < ActiveRecord::Base
+  class ReleaseStatus < ApplicationRecord
     MAX_DESCRIPTION_LENGTH = 140
     include DeferredTouch
 
