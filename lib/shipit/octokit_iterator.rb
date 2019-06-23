@@ -14,9 +14,13 @@ module Shipit
     def each(&block)
       response = @response
 
+      return if response.nil?
+
       loop do
         response.data.each(&block)
+
         return unless response.rels[:next]
+
         response = response.rels[:next].get
       end
     end
