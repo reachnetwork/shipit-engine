@@ -1,5 +1,5 @@
 module Shipit
-  class Rollback < ApplicationRecord
+  class Rollback < Deploy
     belongs_to :deploy, foreign_key: :parent_id, inverse_of: false
 
     state_machine :status do
