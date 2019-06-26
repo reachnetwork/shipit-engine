@@ -49,7 +49,7 @@ module Shipit
 
     scope :waiting, -> { where(merge_status: WAITING_STATUSES) }
     scope :pending, -> { where(merge_status: 'pending') }
-    scope :to_be_merged, -> { where("pull_requests.merge_status = 'pending' OR (pull_requests.merge_status = 'rejected' AND pull_requests.rejection_reason IN ('merge_conflict', 'ci_failing') AND pull_requests.merge_requested_at >= NOW() - INTERVAL 1 DAY)").order(merge_requested_at: :asc) }
+    scope :to_be_merged, -> { where("pull_requests.merge_status = 'pending' OR (pull_requests.merge_status = 'rejected' AND pull_requests.rejection_reason IN ('merge_conflict', 'ci_failing') AND pull_requests.merge_requested_at >= NOW() - INTERVAL 6 HOUR)").order(merge_requested_at: :asc) }
     scope :queued, -> { where(merge_status: QUEUED_STATUSES).order(merge_requested_at: :asc) }
 
     after_save :record_merge_status_change
@@ -237,7 +237,10 @@ module Shipit
     def refresh!
       rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
         Octokit::Unauthorized, Octokit::InternalServerError], retries_exhausted_raises_error: false) do
-        update!(github_pull_request: Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, number))
+        github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, number)
+        update!(github_pull_request: github_pr_resp)
+
+        complete! if github_pr_resp.merged
       end
       head.refresh_statuses!
       fetched! if fetching?

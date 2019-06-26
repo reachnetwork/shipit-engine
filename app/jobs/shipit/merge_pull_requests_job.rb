@@ -25,7 +25,7 @@ module Shipit
           (
             pr.rejected? &&
             ["merge_conflict", "ci_failing"].include?(pr.rejection_reason) &&
-            (pr.merge_requested_at + 1.day).future?
+            (pr.merge_requested_at + 6.hours).future?
           )
       }.each do |pull_request|
         ::Honeybadger.context(pull_request_id: pull_request.id)
