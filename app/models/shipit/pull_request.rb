@@ -280,11 +280,14 @@ module Shipit
     end
 
     def comparison
-      @comparison ||= Shipit.github.api(stack.installation_id).compare(
-        stack.github_repo_name,
-        base_ref,
-        head.sha,
-      )
+      rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
+        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false) do
+        @comparison ||= beginShipit.github.api(stack.installation_id).compare(
+          stack.github_repo_name,
+          base_ref,
+          head.sha,
+        )
+      end
     end
 
     private
