@@ -5,8 +5,8 @@ module Shipit
     MAX_FETCHED_COMMITS = 10
     queue_as :default
 
-    self.timeout = 60
-    self.lock_timeout = 20
+    self.timeout = 120
+    self.lock_timeout = 120
 
     def perform(params)
       @stack = Stack.find(params[:stack_id])
