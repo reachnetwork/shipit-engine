@@ -236,7 +236,7 @@ module Shipit
 
     def refresh!
       rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-        Octokit::Unauthorized, Octokit::InternalServerError], retries_exhausted_raises_error: false) do
+        Octokit::Unauthorized, Octokit::InternalServerError, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
         github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, number)
         update!(github_pull_request: github_pr_resp)
 
@@ -281,7 +281,7 @@ module Shipit
 
     def comparison
       rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false) do
+        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
         @comparison ||= Shipit.github.api(stack.installation_id).compare(
           stack.github_repo_name,
           base_ref,
@@ -308,7 +308,7 @@ module Shipit
         return commit
       else
         rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-          Octokit::Unauthorized, Octokit::InternalServerError], retries_exhausted_raises_error: false) do
+          Octokit::Unauthorized, Octokit::InternalServerError, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
           github_commit = Shipit.github.api(stack.installation_id).commit(stack.github_repo_name, sha)
           stack.commits.create_from_github!(github_commit, attributes)
         end
