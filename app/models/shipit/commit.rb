@@ -126,14 +126,13 @@ module Shipit
     end
 
     def refresh_statuses!
-      retry_count = 0
       github_statuses = stack.handle_github_redirections do
         rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
           Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
           Shipit.github.api(stack.installation_id).statuses(github_repo_name, sha)
         end
       end
-      github_statuses.each do |status|
+      github_statuses.to_a.each do |status|
         create_status_from_github!(status)
       end
     end
@@ -145,13 +144,15 @@ module Shipit
     end
 
     def refresh_check_runs!
-      retry_count = 0
       response = stack.handle_github_redirections do
         rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
           Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
           Shipit.github.api(stack.installation_id).check_runs(github_repo_name, sha)
         end
       end
+
+      return if response.blank?
+
       response.check_runs.each do |check_run|
         create_or_update_check_run_from_github!(check_run)
       end
@@ -268,6 +269,8 @@ module Shipit
     end
 
     def fetch_stats!
+      return if github_commit.blank?
+
       update!(
         additions: github_commit.stats&.additions,
         deletions: github_commit.stats&.deletions,
