@@ -156,6 +156,9 @@ module Shipit
       response.check_runs.each do |check_run|
         create_or_update_check_run_from_github!(check_run)
       end
+
+    rescue Octokit::UnprocessableEntity
+      destroy!
     end
 
     def create_or_update_check_run_from_github!(github_check_run)

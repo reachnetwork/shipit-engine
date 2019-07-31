@@ -6,7 +6,7 @@ module Shipit
 
     WAITING_STATUSES = %w(fetching pending).freeze
     QUEUED_STATUSES = %w(pending revalidating).freeze
-    REJECTION_REASONS = %w(ci_failing merge_conflict requires_rebase).freeze
+    REJECTION_REASONS = %w(ci_failing merge_conflict requires_rebase not_found).freeze
     InvalidTransition = Class.new(StandardError)
     NotReady = Class.new(StandardError)
 
@@ -156,9 +156,12 @@ module Shipit
     end
 
     def reject_unless_mergeable!
-      return reject!('merge_conflict') if merge_conflict?
-      return reject!('ci_failing') if any_status_checks_failed?
-      return reject!('requires_rebase') if stale?
+      unless merged?
+        return reject!('merge_conflict') if merge_conflict?
+        return reject!('ci_failing') if any_status_checks_failed?
+        return reject!('requires_rebase') if stale?
+      end
+
       false
     end
 
@@ -192,6 +195,9 @@ module Shipit
       return false
     rescue Octokit::Conflict # shas didn't match, PR was updated.
       raise NotReady
+    rescue Octokit::NotFound
+      reject!('not_found') unless rejected?
+      return false
     end
 
     def all_status_checks_passed?
@@ -240,7 +246,7 @@ module Shipit
         github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, number)
         update!(github_pull_request: github_pr_resp)
 
-        complete! if github_pr_resp.merged
+        complete! if github_pr_resp.merged && !merged?
       end
       head.refresh_statuses!
       fetched! if fetching?
