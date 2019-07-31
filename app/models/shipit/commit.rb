@@ -129,7 +129,7 @@ module Shipit
       retry_count = 0
       github_statuses = stack.handle_github_redirections do
         rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-          Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false) do
+          Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
           Shipit.github.api(stack.installation_id).statuses(github_repo_name, sha)
         end
       end
@@ -148,7 +148,7 @@ module Shipit
       retry_count = 0
       response = stack.handle_github_redirections do
         rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-          Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false) do
+          Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
           Shipit.github.api(stack.installation_id).check_runs(github_repo_name, sha)
         end
       end
@@ -258,7 +258,7 @@ module Shipit
     def github_commit
       retry_count = 0
       rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false) do
+        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
         @github_commit ||= Shipit.github.api(stack.installation_id).commit(github_repo_name, sha)
       end
     end
