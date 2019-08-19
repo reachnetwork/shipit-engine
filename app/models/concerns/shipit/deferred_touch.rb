@@ -38,6 +38,7 @@ module Shipit
       def fetch
         fetch_members do |records|
           return if records.empty?
+
           records = records.each_with_object({}) do |(model, id, attribute), hash|
             attributes = (hash[model] ||= {})
             ids = (attributes[attribute] ||= [])
@@ -77,6 +78,7 @@ module Shipit
 
     def schedule_touches
       return unless self.class.deferred_touches
+
       deferred_touches = self.class.deferred_touches.reject do |m, _fk, _a|
         ActiveRecord::NoTouching.applied_to?(m.constantize)
       end
@@ -87,7 +89,7 @@ module Shipit
       if DeferredTouch.enabled
         begin
           Rails.cache.fetch(CACHE_KEY, expires_in: THROTTLE_TTL) do
-            DeferredTouchJob.perform_later
+            # DeferredTouchJob.perform_later
             true
           end
         rescue Errno::ENOENT
