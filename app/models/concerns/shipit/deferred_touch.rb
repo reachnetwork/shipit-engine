@@ -89,7 +89,7 @@ module Shipit
       if DeferredTouch.enabled
         begin
           Rails.cache.fetch(CACHE_KEY, expires_in: THROTTLE_TTL) do
-            # DeferredTouchJob.perform_later
+            DeferredTouchJob.perform_later
             true
           end
         rescue Errno::ENOENT
