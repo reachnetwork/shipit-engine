@@ -171,14 +171,17 @@ module Shipit
       raise NotReady if not_mergeable_yet? && !force_merge
 
       client = force_merge ? Octokit::Client.new(access_token: ENV['CAPUSER_GITHUB_OAUTH_TOKEN']) : Shipit.github.api(stack.installation_id)
-      client.merge_pull_request(
-        stack.github_repo_name,
-        number,
-        merge_message,
-        sha: head.sha,
-        commit_message: 'Merged by Shipit',
-        merge_method: stack.merge_method,
-      )
+      rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway, Octokit::Unauthorized, Octokit::InternalServerError, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
+        client.merge_pull_request(
+          stack.github_repo_name,
+          number,
+          merge_message,
+          sha: head.sha,
+          commit_message: 'Merged by Shipit',
+          merge_method: stack.merge_method,
+        )
+      end
+
       begin
         if client.pull_requests(stack.github_repo_name, base: branch).empty?
           client.delete_branch(stack.github_repo_name, branch)
@@ -191,7 +194,7 @@ module Shipit
       ::SlackClient.async_send_msg(to: merge_requested_by.admin_user.slack_handle, message: "Your #{stack.github_repo_name} PR '#{title}' has been successfully merged!")
       return true
     rescue Octokit::MethodNotAllowed # merge conflict
-      reject!('merge_conflict') unless rejected?
+      reject!('merge_conflict') unless rejected? || merged?
       return false
     rescue Octokit::Conflict # shas didn't match, PR was updated.
       raise NotReady
@@ -246,7 +249,7 @@ module Shipit
         github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, number)
         update!(github_pull_request: github_pr_resp)
 
-        complete! if github_pr_resp.merged && !merged?
+        complete! if github_pr_resp.merged && !merged? && !rejected? && !fetching?
       end
       head.refresh_statuses!
       fetched! if fetching?
