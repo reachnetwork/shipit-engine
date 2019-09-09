@@ -205,12 +205,28 @@ module Shipit
 
     def all_status_checks_passed?
       return false unless head
-      StatusChecker.new(head, head.statuses_and_check_runs, stack.cached_deploy_spec).success?
+      status_state = StatusChecker.new(head, head.statuses_and_check_runs, stack.cached_deploy_spec).success?
+      review_state = review_status
+
+      status_state && review_state
     end
 
     def any_status_checks_failed?
       status = StatusChecker.new(head, head.statuses_and_check_runs, stack.cached_deploy_spec)
-      status.failure? || status.error? || status.missing?
+      review_state = review_status
+
+      status.failure? || status.error? || status.missing? || !review_state
+    end
+
+    def review_status
+      result = false
+      result = rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway, Octokit::Unauthorized, Octokit::InternalServerError, Faraday::ConnectionFailed], return_value_on_error: false, retries_exhausted_raises_error: false) do
+        reviews = client.pull_request_reviews(stack.github_repo_name, number)
+        last_review = reviews.sort_by{ |s| s[:submitted_at] }.last
+        result = last_review.present? && last_review.state == "APPROVED"
+      end
+
+      result
     end
 
     def waiting?
