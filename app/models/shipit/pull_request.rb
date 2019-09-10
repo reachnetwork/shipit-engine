@@ -219,6 +219,7 @@ module Shipit
     end
 
     def review_status
+      client = Shipit.github.api(stack.installation_id)
       result = false
       result = rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway, Octokit::Unauthorized, Octokit::InternalServerError, Faraday::ConnectionFailed], return_value_on_error: false, retries_exhausted_raises_error: false) do
         reviews = client.pull_request_reviews(stack.github_repo_name, number)
