@@ -20,19 +20,20 @@ module Shipit
 
       return false unless stack.allows_merges?
 
-      pull_requests.select{ |pr|
+      pull_requests.select do |pr|
         pr.pending? ||
           (
             pr.rejected? &&
             ["merge_conflict", "ci_failing"].include?(pr.rejection_reason) &&
             (pr.merge_requested_at + 6.hours).future?
           )
-      }.each do |pull_request|
+      end.each do |pull_request|
         ::Honeybadger.context(pull_request_id: pull_request.id)
         pull_request.refresh!
         next unless pull_request.all_status_checks_passed?
+
         begin
-          pull_request.merge!
+          pull_request.merge! unless pull_request.rejected?
         rescue PullRequest::NotReady
           MergePullRequestsJob.set(wait: 10.seconds).perform_later(stack)
           return false

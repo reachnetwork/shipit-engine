@@ -182,12 +182,10 @@ module Shipit
         )
       end
 
-      begin
+      rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway, Octokit::Unauthorized, Octokit::InternalServerError, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
         if client.pull_requests(stack.github_repo_name, base: branch).empty?
           client.delete_branch(stack.github_repo_name, branch)
         end
-      rescue Octokit::UnprocessableEntity
-        # branch was already deleted somehow
       end
       complete!
       GithubSyncJob.perform_later(stack_id: stack.id)

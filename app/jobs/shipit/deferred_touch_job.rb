@@ -4,8 +4,8 @@ module Shipit
 
     queue_as :default
 
-    self.timeout = 120
-    self.lock_timeout = 120
+    self.timeout = 300
+    self.lock_timeout = 300
 
     def perform
       DeferredTouch.touch_now!

@@ -92,7 +92,7 @@ module Shipit
             DeferredTouchJob.perform_later
             true
           end
-        rescue Errno::ENOENT
+        rescue Errno::ENOENT, Errno::EEXIST
           return
         end
       else
