@@ -27,24 +27,27 @@
   </div>
   <% if pull_request.revalidating? %>
     <div class="commit-actions">
-      <%= button_to 'Confirm', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number), class: 'btn btn--warning', method: 'post' %>
+      <%= button_to 'Confirm', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number), class: 'btn btn--primary', method: 'post' %>
     </div>
     <div class="commit-actions">
-      <%= button_to 'Cancel', stack_pull_request_path(pull_request.stack, pull_request), class: 'btn btn--warning', method: 'delete' %>
+      <%= button_to 'Cancel', stack_pull_request_path(pull_request.stack, pull_request), class: 'btn btn--delete', method: 'delete' %>
     </div>
   <% elsif pull_request.rejected? || pull_request.canceled? %>
     <div class="commit-actions">
-      <%= button_to 'Recheck', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number), class: 'btn btn--warning', method: 'post' %>
+      <%= button_to 'Recheck', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number), class: 'btn btn--primary', method: 'post' %>
     </div>
     <div class="commit-actions">
-      <%= button_to 'Force Merge', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number, force_merge: true), class: 'btn btn--danger', method: 'post', data: {confirm: "This should only be used in cases where the PR is hanging or an emergency patch must be issued. This will not work in cases where there are merge conflicts. Are you sure?"} %>
+      <%= button_to 'Force Merge', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number, force_merge: true), class: 'btn btn--alert', method: 'post', data: {confirm: "This should only be used in cases where the PR is hanging or an emergency patch must be issued. This will not work in cases where there are merge conflicts. Are you sure?"} %>
+    </div>
+    <div class="commit-actions">
+      <%= button_to 'Cancel', stack_pull_request_path(pull_request.stack, pull_request), class: 'btn btn--delete', method: 'delete' %>
     </div>
   <% elsif pull_request.pending? %>
     <div class="commit-actions">
-      <%= button_to 'Force Merge', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number, force_merge: true), class: 'btn btn--warning', method: 'post', data: {confirm: "This should only be used in cases where the PR is hanging or an emergency patch must be issued. This will not work in cases where there are merge conflicts. Are you sure?"} %>
+      <%= button_to 'Force Merge', stack_pull_requests_path(pull_request.stack, number_or_url: pull_request.number, force_merge: true), class: 'btn btn--alert', method: 'post', data: {confirm: "This should only be used in cases where the PR is hanging or an emergency patch must be issued. This will not work in cases where there are merge conflicts. Are you sure?"} %>
     </div>
     <div class="commit-actions">
-      <%= button_to 'Cancel', stack_pull_request_path(pull_request.stack, pull_request), class: 'btn btn--warning', method: 'delete' %>
+      <%= button_to 'Cancel', stack_pull_request_path(pull_request.stack, pull_request), class: 'btn btn--delete', method: 'delete' %>
     </div>
   <% end %>
 </li>
