@@ -10,7 +10,8 @@ module Shipit
 
       begin
         sha = commands.fetch_deployed_revision
-      rescue DeploySpec::Error
+      rescue DeploySpec::Error,
+             Shipit::Command::Failed
       end
 
       return if sha.blank?

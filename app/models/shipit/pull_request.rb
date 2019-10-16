@@ -270,7 +270,7 @@ module Shipit
 
         complete! if github_pr_resp.merged && !merged? && !rejected? && !fetching?
       end
-      head.refresh_statuses!
+      head.refresh_statuses! if head.present?
       fetched! if fetching?
       @comparison = nil
     end
