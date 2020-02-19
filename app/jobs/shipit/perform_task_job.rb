@@ -21,18 +21,29 @@ module Shipit
       checkout_repository
       perform_task
       @task.report_complete!
-      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "SUCCESS :heavy_check_mark: : Deploy of #{stack.repo_name.titleize} #{stack.environment} completed! PR Title: #{@task.until_commit.pull_request_title}; Message: #{@task.until_commit.message}")
+
+      message = {
+        author_name: "Deploy of #{stack.repo_name.titleize} #{stack.environment} completed!",
+        title: @task.until_commit.pull_request_title,
+        title_link: "#{stack.repo_http_url}/pull/#{@task.until_commit.pull_request_number}",
+        text: @task.until_commit.message
+      }
+
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: ":heavy_check_mark: SUCCESS #{[':amaze:', ':party_parrot:', ':tomatodance:', ':hands:'].sample}", attachments: [message])
     rescue Command::TimedOut => error
       @task.write("\n#{error.message}\n")
       @task.report_timeout!(error)
-      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "ERROR :x: : Deploy of #{stack.repo_name.titleize} #{stack.environment} timed out! #{deploy_link}. PR Title: #{@task.until_commit.pull_request_title}; Message: #{@task.until_commit.message}")
+      message[:author_name] = "Deploy of #{stack.repo_name.titleize} #{stack.environment} timed out!"
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: ":x: ERROR #{[':dumpster_fire:', ':oh_no:', ':dead:'].sample}", attachments: [message])
     rescue Command::Error => error
       @task.write("\n#{error.message}\n")
       @task.report_failure!(error)
-      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "ERROR :x: : Deploy of #{stack.repo_name.titleize} #{stack.environment} failed! #{deploy_link}. PR Title: #{@task.until_commit.pull_request_title}; Message: #{@task.until_commit.message}")
+      message[:author_name] = "Deploy of #{stack.repo_name.titleize} #{stack.environment} failed!"
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: ":x: ERROR #{[':dumpster_fire:', ':oh_no:', ':dead:'].sample}", attachments: [message])
     rescue StandardError => error
       @task.report_error!(error)
-      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "ERROR :x: : Deploy of #{stack.repo_name.titleize} #{stack.environment} errored! #{deploy_link}. PR Title: #{@task.until_commit.pull_request_title}; Message: #{@task.until_commit.message}")
+      message[:author_name] = "Deploy of #{stack.repo_name.titleize} #{stack.environment} errored!"
+      ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: ":x: ERROR #{[':dumpster_fire:', ':oh_no:', ':dead:'].sample}", attachments: [message])
     rescue StandardError => error
       @task.report_error!(error)
       raise
