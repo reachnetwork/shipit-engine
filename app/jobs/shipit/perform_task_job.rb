@@ -22,10 +22,20 @@ module Shipit
       perform_task
       @task.report_complete!
 
+      pull_request = @task.until_commit.pull_request
+      github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, pull_request.number)
+
       message = {
         title: @task.until_commit.pull_request_title,
         title_link: "#{stack.repo_http_url}/pull/#{@task.until_commit.pull_request_number}"
       }
+
+      uri = begin
+        URI.parse(github_pr_resp.body)
+            rescue URI::InvalidURIError
+        # Skip invalid links
+      end
+      message[:text] = "<#{uri}|Jira Ticket>" if uri.present? && uri.to_s.include?("atlassian")
 
       ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: ":heavy_check_mark: SUCCESS: *Deploy of #{stack.repo_name.titleize} #{stack.environment} completed!* #{[':amaze:', ':party_parrot:', ':tomatodance:', ':hands:'].sample}", attachments: [message])
     rescue Command::TimedOut => error
