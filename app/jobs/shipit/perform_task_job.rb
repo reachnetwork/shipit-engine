@@ -22,8 +22,7 @@ module Shipit
       perform_task
       @task.report_complete!
 
-      pull_request = @task.until_commit.pull_request
-      github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, pull_request.number)
+      github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, @task.until_commit.pull_request_number)
 
       message = {
         title: @task.until_commit.pull_request_title,
