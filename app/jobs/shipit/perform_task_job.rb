@@ -22,17 +22,23 @@ module Shipit
       perform_task
       @task.report_complete!
 
-      github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, @task.until_commit.pull_request_number)
+      begin
+        github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, @task.until_commit.pull_request_number)
+      rescue Octokit::NotFound => e
+        # do nothing
+      end
 
       message = {
         title: @task.until_commit.pull_request_title,
         title_link: "#{stack.repo_http_url}/pull/#{@task.until_commit.pull_request_number}"
       }
 
-      uri = begin
-        URI.parse(github_pr_resp.body)
-            rescue URI::InvalidURIError
-        # Skip invalid links
+      if github_pr_resp.present?
+        uri = begin
+          URI.parse(github_pr_resp&.body)
+              rescue URI::InvalidURIError
+          # Skip invalid links
+        end
       end
       message[:text] = "<#{uri}|Jira Ticket>" if uri.present? && uri.to_s.include?("atlassian")
 
