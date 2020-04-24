@@ -12,14 +12,6 @@ module Shipit
       @stacks = Stack.order('(undeployed_commits_count > 0) desc', tasks_count: :desc).to_a
     end
 
-    def project_list
-      @list = Shipit::Stack.where(continuous_deployment: true).inject({}) do |h, s|
-        h[s.repo_name] ||= {}
-        h[s.repo_name][s.branch] = s.id
-        h
-      end
-    end
-
     def show
       @stack = Stack.from_param!(params[:id])
       return if flash.empty? && !stale?(last_modified: @stack.updated_at)

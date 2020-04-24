@@ -47,11 +47,7 @@ Shipit::Engine.routes.draw do
   delete '/merge_status/*stack_id/pull/:number', action: :dequeue, controller: :merge_status, id: stack_id_format, as: :dequeue_pull_request
 
   # Humans
-  resources :stacks, only: %i[new create index] do
-    collection do
-      get :project_list, as: :project_list
-    end
-  end
+  resources :stacks, only: %i[new create index]
 
   scope '/github/auth/github', as: :github_authentication, controller: :github_authentication do
     get '/', action: :request
