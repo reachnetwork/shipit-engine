@@ -1,6 +1,6 @@
 module Shipit
   class StacksController < ShipitController
-    before_action :load_stack, only: %i(update destroy settings clear_git_cache refresh)
+    before_action :load_stack, only: %i[update destroy settings clear_git_cache refresh]
 
     def new
       @stack = Stack.new
@@ -10,6 +10,14 @@ module Shipit
       @user_stacks = current_user.stacks_contributed_to
 
       @stacks = Stack.order('(undeployed_commits_count > 0) desc', tasks_count: :desc).to_a
+    end
+
+    def project_list
+      @list = Shipit::Stack.where(continuous_deployment: true).inject({}) do |h, s|
+        h[s.repo_name] ||= {}
+        h[s.repo_name][s.branch] = s.id
+        h
+      end
     end
 
     def show
@@ -33,11 +41,11 @@ module Shipit
 
       @active_commits = map_to_undeployed_commit(
         @active_commits,
-        next_expected_commit_to_deploy: next_expected_commit_to_deploy,
+        next_expected_commit_to_deploy: next_expected_commit_to_deploy
       )
       @undeployed_commits = map_to_undeployed_commit(
         @undeployed_commits,
-        next_expected_commit_to_deploy: next_expected_commit_to_deploy,
+        next_expected_commit_to_deploy: next_expected_commit_to_deploy
       )
     end
 
@@ -48,9 +56,7 @@ module Shipit
 
     def create
       @stack = Stack.new(create_params)
-      unless @stack.save
-        flash[:warning] = @stack.errors.full_messages.to_sentence
-      end
+      flash[:warning] = @stack.errors.full_messages.to_sentence unless @stack.save
       respond_with(@stack)
     end
 
@@ -72,9 +78,7 @@ module Shipit
 
     def update
       options = {}
-      unless @stack.update(update_params)
-        options = {flash: {warning: @stack.errors.full_messages.to_sentence}}
-      end
+      options = {flash: {warning: @stack.errors.full_messages.to_sentence}} unless @stack.update(update_params)
 
       reason = params[:stack][:lock_reason]
       if reason.present?

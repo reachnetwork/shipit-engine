@@ -1,5 +1,5 @@
 Shipit::Engine.routes.draw do
-  stack_id_format = %r{[^/]+/[^/]+/[^/]+}
+  stack_id_format = /[^\/]+\/[^\/]+\/[^\/]+/
   sha_format = /[\da-f]{6,40}/
   root to: 'stacks#index'
 
@@ -13,7 +13,7 @@ Shipit::Engine.routes.draw do
   # API
   namespace :api do
     root to: 'base#index'
-    resources :stacks, only: %i(index create)
+    resources :stacks, only: %i[index create]
     scope '/stacks/*id', id: stack_id_format, as: :stack do
       get '/' => 'stacks#show'
       delete '/' => 'stacks#destroy'
@@ -21,20 +21,20 @@ Shipit::Engine.routes.draw do
 
     scope '/stacks/*stack_id', stack_id: stack_id_format, as: :stack do
       get '/ccmenu' => 'ccmenu#show', as: :ccmenu
-      resource :lock, only: %i(create update destroy)
-      resources :tasks, only: %i(index show) do
+      resource :lock, only: %i[create update destroy]
+      resources :tasks, only: %i[index show] do
         resource :output, only: :show
       end
-      resources :deploys, only: %i(index create) do
-        resources :release_statuses, only: %i(create)
+      resources :deploys, only: %i[index create] do
+        resources :release_statuses, only: %i[create]
       end
-      resources :commits, only: %i(index)
-      resources :pull_requests, only: %i(index show update destroy)
+      resources :commits, only: %i[index]
+      resources :pull_requests, only: %i[index show update destroy]
       post '/task/:task_name' => 'tasks#trigger', as: :trigger_task
-      resources :hooks, only: %i(index create show update destroy)
+      resources :hooks, only: %i[index create show update destroy]
     end
 
-    resources :hooks, only: %i(index create show update destroy)
+    resources :hooks, only: %i[index create show update destroy]
   end
 
   scope '/ccmenu/*stack_id', stack_id: stack_id_format, as: :ccmenu_url do
@@ -47,7 +47,11 @@ Shipit::Engine.routes.draw do
   delete '/merge_status/*stack_id/pull/:number', action: :dequeue, controller: :merge_status, id: stack_id_format, as: :dequeue_pull_request
 
   # Humans
-  resources :stacks, only: %i(new create index)
+  resources :stacks, only: %i[new create index] do
+    collection do
+      get :project_list, as: :project_list
+    end
+  end
 
   scope '/github/auth/github', as: :github_authentication, controller: :github_authentication do
     get '/', action: :request
@@ -74,9 +78,9 @@ Shipit::Engine.routes.draw do
     get '/commit/:sha/checks' => 'commit_checks#show', as: :commit_checks
     get '/commit/:sha/checks/tail' => 'commit_checks#tail', as: :tail_commit_checks, defaults: {format: :json}
 
-    resources :rollbacks, only: %i(create)
-    resources :commits, only: %i(update)
-    resources :tasks, only: %i(show) do
+    resources :rollbacks, only: %i[create]
+    resources :commits, only: %i[update]
+    resources :tasks, only: %i[show] do
       collection do
         get '' => 'tasks#index', as: :index
         get ':definition_id/new' => 'tasks#new', as: :new
@@ -89,17 +93,17 @@ Shipit::Engine.routes.draw do
       end
     end
 
-    resources :deploys, only: %i(show create) do
+    resources :deploys, only: %i[show create] do
       get ':sha', sha: sha_format, on: :new, action: :new, as: ''
       member do
         get :rollback
         get :revert
       end
 
-      resources :release_statuses, only: %i(create)
+      resources :release_statuses, only: %i[create]
     end
 
-    resources :pull_requests, only: %i(index destroy create)
+    resources :pull_requests, only: %i[index destroy create]
   end
   get '/stacks/:id' => 'stacks#lookup'
 end
