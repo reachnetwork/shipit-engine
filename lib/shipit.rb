@@ -30,6 +30,8 @@ require 'faraday-http-cache'
 
 require 'shipit/version'
 
+require 'sidekiq-unique-jobs'
+
 require 'shipit/octokit_check_runs'
 require 'shipit/flock'
 require 'shipit/github_app'
@@ -75,15 +77,16 @@ module Shipit
     secrets.redis_url.present? ? URI(secrets.redis_url) : nil
   end
 
-  def redis(namespace = nil)
+  def redis(namespace=nil)
     @redis ||= Redis.new(
       url: redis_url.to_s.presence,
       logger: Rails.logger,
       reconnect_attempts: 3,
       reconnect_delay: 0.5,
-      reconnect_delay_max: 1,
+      reconnect_delay_max: 1
     )
     return @redis unless namespace
+
     Redis::Namespace.new(namespace, redis: @redis)
   end
 
@@ -92,9 +95,7 @@ module Shipit
   end
 
   def legacy_github_api
-    if secrets&.github_api.present?
-      @legacy_github_api ||= github.new_client(access_token: secrets.github_api['access_token'])
-    end
+    @legacy_github_api ||= github.new_client(access_token: secrets.github_api['access_token']) if secrets&.github_api.present?
   end
 
   def user
@@ -112,7 +113,7 @@ module Shipit
         shared_cache: false,
         store: Rails.cache,
         logger: Rails.logger,
-        serializer: NullSerializer,
+        serializer: NullSerializer
       )
       builder.use StripCacheControl
       builder.use Octokit::Response::RaiseError
@@ -150,14 +151,14 @@ module Shipit
   end
 
   def github_teams
-    @github_teams ||= github.oauth_teams.map { |t| Team.find_or_create_by_handle(t) }
+    @github_teams ||= github.oauth_teams.map{ |t| Team.find_or_create_by_handle(t) }
   end
 
   def all_settings_present?
     @all_settings_present ||= [
       secrets.github, # TODO: handle GitHub settings
       redis_url,
-      host,
+      host
     ].all?(&:present?)
   end
 
