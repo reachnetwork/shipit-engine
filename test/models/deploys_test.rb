@@ -202,10 +202,10 @@ module Shipit
       deploy.stack.update(continuous_deployment: true)
 
       assert_difference "Deploy.count" do
-        assert_enqueued_with(job: ContinuousDeliveryJob, args: [deploy.stack]) do
+        assert_enqueued_with(job: ContinuousDeliveryJob, args: [deploy.stack.id]) do
           deploy.complete!
         end
-        ContinuousDeliveryJob.new.perform(deploy.stack)
+        ContinuousDeliveryJob.new.perform(deploy.stack.id)
       end
     end
 

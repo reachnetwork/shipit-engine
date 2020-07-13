@@ -267,7 +267,7 @@ module Shipit
 
     def schedule_continuous_delivery
       return unless stack.continuous_deployment?
-      ContinuousDeliveryJob.perform_later(stack)
+      ContinuousDeliveryJob.perform_async(stack.id)
     end
 
     def update_undeployed_commits_count

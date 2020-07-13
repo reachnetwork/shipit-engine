@@ -256,7 +256,7 @@ module Shipit
 
     def schedule_continuous_delivery
       return unless deployable? && stack.continuous_deployment? && stack.deployable?
-      ContinuousDeliveryJob.perform_later(stack)
+      ContinuousDeliveryJob.perform_async(stack.id)
     end
 
     def github_commit

@@ -82,7 +82,7 @@ module Shipit
 
     def self.schedule_continuous_delivery
       where(continuous_deployment: true).find_each do |stack|
-        ContinuousDeliveryJob.perform_later(stack)
+        ContinuousDeliveryJob.perform_async(stack.id)
       end
     end
 

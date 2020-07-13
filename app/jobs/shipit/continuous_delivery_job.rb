@@ -1,13 +1,10 @@
 module Shipit
-  class ContinuousDeliveryJob < BackgroundJob
-    include BackgroundJob::Unique
+  class ContinuousDeliveryJob
+    include Sidekiq::Worker
+    sidekiq_options lock: :until_and_while_executing, queue: 'default'
 
-    queue_as :default
-
-    self.timeout = 300
-    self.lock_timeout = 300
-
-    def perform(stack)
+    def perform(stack_id)
+      stack = Stack.find(stack_id)
       return unless stack.continuous_deployment?
       return if stack.active_task?
 
