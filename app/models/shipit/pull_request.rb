@@ -4,9 +4,9 @@ module Shipit
 
     MERGE_REQUEST_FIELD = 'Merge-Requested-By'.freeze
 
-    WAITING_STATUSES = %w(fetching pending).freeze
-    QUEUED_STATUSES = %w(pending revalidating).freeze
-    REJECTION_REASONS = %w(ci_failing merge_conflict requires_rebase not_found).freeze
+    WAITING_STATUSES = %w[fetching pending].freeze
+    QUEUED_STATUSES = %w[pending revalidating].freeze
+    REJECTION_REASONS = %w[ci_failing merge_conflict requires_rebase not_found].freeze
     InvalidTransition = Class.new(StandardError)
     NotReady = Class.new(StandardError)
 
@@ -21,11 +21,11 @@ module Shipit
       attr_reader :deploy_spec
 
       def reject_hidden(statuses)
-        statuses.reject { |s| ignored_statuses.include?(s.context) }
+        statuses.reject{ |s| ignored_statuses.include?(s.context) }
       end
 
       def reject_allowed_to_fail(statuses)
-        statuses.reject { |s| ignored_statuses.include?(s.context) }
+        statuses.reject{ |s| ignored_statuses.include?(s.context) }
       end
 
       def ignored_statuses
@@ -47,10 +47,10 @@ module Shipit
 
     validates :number, presence: true, uniqueness: {scope: :stack_id}
 
-    scope :waiting, -> { where(merge_status: WAITING_STATUSES) }
-    scope :pending, -> { where(merge_status: 'pending') }
-    scope :to_be_merged, -> { where("pull_requests.merge_status = 'pending' OR (pull_requests.merge_status = 'rejected' AND pull_requests.rejection_reason IN ('merge_conflict', 'ci_failing') AND pull_requests.merge_requested_at >= NOW() - INTERVAL 6 HOUR)").order(merge_requested_at: :asc) }
-    scope :queued, -> { where(merge_status: QUEUED_STATUSES).order(merge_requested_at: :asc) }
+    scope :waiting, ->{ where(merge_status: WAITING_STATUSES) }
+    scope :pending, ->{ where(merge_status: 'pending') }
+    scope :to_be_merged, ->{ where("pull_requests.merge_status = 'pending' OR (pull_requests.merge_status = 'rejected' AND pull_requests.rejection_reason IN ('merge_conflict', 'ci_failing') AND pull_requests.merge_requested_at >= NOW() - INTERVAL 6 HOUR)").order(merge_requested_at: :asc) }
+    scope :queued, ->{ where(merge_status: QUEUED_STATUSES).order(merge_requested_at: :asc) }
 
     after_save :record_merge_status_change
     after_commit :emit_hooks
@@ -84,14 +84,14 @@ module Shipit
       end
 
       event :retry do
-        transition %i(rejected canceled revalidating) => :pending
+        transition %i[rejected canceled revalidating] => :pending
       end
 
       before_transition rejected: any do |pr|
         pr.rejection_reason = nil
       end
 
-      before_transition %i(fetching rejected canceled) => :pending do |pr|
+      before_transition %i[fetching rejected canceled] => :pending do |pr|
         pr.merge_requested_at = Time.now.utc
       end
 
@@ -99,7 +99,7 @@ module Shipit
         pr.revalidated_at = Time.now.utc
       end
 
-      before_transition %i(pending) => :merged do |pr|
+      before_transition %i[pending] => :merged do |pr|
         Stack.increment_counter(:undeployed_commits_count, pr.stack_id)
       end
     end
@@ -112,9 +112,10 @@ module Shipit
       case number_or_url
       when /\A#?(\d+)\z/
         $1.to_i
-      when %r{\Ahttps://#{Regexp.escape(Shipit.github.domain)}/([^/]+)/([^/]+)/pull/(\d+)}
+      when /\Ahttps:\/\/#{Regexp.escape(Shipit.github.domain)}\/([^\/]+)\/([^\/]+)\/pull\/(\d+)/
         return unless $1.downcase == stack.repo_owner.downcase
         return unless $2.downcase == stack.repo_name.downcase
+
         $3.to_i
       end
     end
@@ -124,13 +125,13 @@ module Shipit
       pull_request = begin
         create_with(
           merge_requested_at: now,
-          merge_requested_by: user.presence,
+          merge_requested_by: user.presence
         ).find_or_create_by!(
           stack: stack,
-          number: number,
+          number: number
         )
-      rescue ActiveRecord::RecordNotUnique
-        retry
+                     rescue ActiveRecord::RecordNotUnique
+                       retry
       end
       ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: "<#{user.admin_user.slack_handle}> attempted to force merge #{stack.github_repo_name} #{stack.environment} PR '#{pull_request.title}'!") if force_merge
       pull_request.update!(merge_requested_by: user.presence)
@@ -151,9 +152,8 @@ module Shipit
     end
 
     def reject!(reason)
-      unless REJECTION_REASONS.include?(reason)
-        raise ArgumentError, "invalid reason: #{reason.inspect}, must be one of: #{REJECTION_REASONS.inspect}"
-      end
+      raise ArgumentError, "invalid reason: #{reason.inspect}, must be one of: #{REJECTION_REASONS.inspect}" unless REJECTION_REASONS.include?(reason)
+
       self.rejection_reason = reason.presence
       super()
       true
@@ -182,31 +182,30 @@ module Shipit
           merge_message,
           sha: head.sha,
           commit_message: 'Merged by Shipit',
-          merge_method: stack.merge_method,
+          merge_method: stack.merge_method
         )
       end
 
       rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway, Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
-        if client.pull_requests(stack.github_repo_name, base: branch).empty?
-          client.delete_branch(stack.github_repo_name, branch)
-        end
+        client.delete_branch(stack.github_repo_name, branch) if client.pull_requests(stack.github_repo_name, base: branch).empty?
       end
       complete!
-      GithubSyncJob.perform_later(stack_id: stack.id)
+      GithubSyncJob.perform_async(stack_id: stack.id)
       ::SlackClient.async_send_msg(to: merge_requested_by.admin_user.slack_handle, message: "Your #{stack.github_repo_name} PR '#{title}' has been successfully merged!")
-      return true
+      true
     rescue Octokit::MethodNotAllowed # merge conflict
       reject!('merge_conflict') unless rejected? || merged?
-      return false
+      false
     rescue Octokit::Conflict # shas didn't match, PR was updated.
-      return false #raise NotReady
+      false # raise NotReady
     rescue Octokit::NotFound
       reject!('not_found') unless rejected?
-      return false
+      false
     end
 
     def all_status_checks_passed?
       return false unless head
+
       status_state = StatusChecker.new(head, head.statuses_and_check_runs, stack.cached_deploy_spec).success?
       review_state = review_status
 
@@ -225,7 +224,7 @@ module Shipit
       result = false
       result = rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway, Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Faraday::ConnectionFailed, Octokit::NotFound], return_value_on_error: false, retries_exhausted_raises_error: false) do
         reviews = client.pull_request_reviews(stack.github_repo_name, number)
-        last_review = reviews.sort_by{ |s| s[:submitted_at] }.last
+        last_review = reviews.max_by{ |s| s[:submitted_at] }
         result = last_review.present? && last_review.state == "APPROVED"
       end
 
@@ -239,6 +238,7 @@ module Shipit
     def need_revalidation?
       timeout = stack.cached_deploy_spec&.revalidate_pull_requests_after
       return false unless timeout
+
       (revalidated_at + timeout).past?
     end
 
@@ -250,7 +250,7 @@ module Shipit
       mergeable.nil?
     end
 
-    def schedule_refresh!(force_merge=false)
+    def schedule_refresh!(_force_merge=false)
       RefreshPullRequestJob.perform_later(self)
     end
 
@@ -264,7 +264,10 @@ module Shipit
 
     def refresh!
       rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
+                                                             Octokit::Unauthorized,
+                                                             Octokit::InternalServerError,
+                                                             Octokit::ServerError,
+                                                             Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
         github_pr_resp = Shipit.github.api(stack.installation_id).pull_request(stack.github_repo_name, number)
         update!(github_pull_request: github_pr_resp)
 
@@ -292,11 +295,13 @@ module Shipit
 
     def merge_message
       return title unless merge_requested_by
+
       "#{title}\n\n#{MERGE_REQUEST_FIELD}: #{merge_requested_by.login}\n"
     end
 
     def stale?
       return false unless base_commit
+
       spec = stack.cached_deploy_spec
       if max_branch_age = spec.max_divergence_age
         return true if Time.now.utc - head.committed_at > max_branch_age
@@ -309,11 +314,15 @@ module Shipit
 
     def comparison
       rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
+                                                             Octokit::Unauthorized,
+                                                             Octokit::InternalServerError,
+                                                             Octokit::ServerError,
+                                                             Octokit::Conflict,
+                                                             Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
         @comparison ||= Shipit.github.api(stack.installation_id).compare(
           stack.github_repo_name,
           base_ref,
-          head.sha,
+          head.sha
         )
       end
     end
@@ -326,6 +335,7 @@ module Shipit
 
     def emit_hooks
       return unless @merge_status_changed
+
       @merge_status_changed = nil
       Hook.emit('merge', stack, pull_request: self, status: merge_status, stack: stack)
     end
@@ -333,10 +343,13 @@ module Shipit
     def find_or_create_commit_from_github_by_sha!(sha, attributes)
       retry_count = 0
       if commit = stack.commits.by_sha(sha)
-        return commit
+        commit
       else
         rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-          Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
+                                                               Octokit::Unauthorized,
+                                                               Octokit::InternalServerError,
+                                                               Octokit::ServerError,
+                                                               Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
           github_commit = Shipit.github.api(stack.installation_id).commit(stack.github_repo_name, sha)
           stack.commits.create_from_github!(github_commit, attributes)
         end
