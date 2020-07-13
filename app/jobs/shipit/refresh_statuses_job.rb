@@ -3,7 +3,7 @@ module Shipit
     include Sidekiq::Worker
     sidekiq_options lock: :until_and_while_executing, queue: 'default'
 
-    def perform(_stack_id=nil, commit_id=nil)
+    def perform(stack_id=nil, commit_id=nil)
       if commit_id
         Commit.find(commit_id).refresh_statuses!
       else
