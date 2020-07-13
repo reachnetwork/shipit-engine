@@ -1,18 +1,15 @@
 module Shipit
-  class GithubSyncJob < BackgroundJob
-    include BackgroundJob::Unique
+  class GithubSyncJob
+    include Sidekiq::Worker
+    sidekiq_options lock: :until_and_while_executing, queue: 'default'
 
     MAX_FETCHED_COMMITS = 10
-    queue_as :default
-
-    self.timeout = 300
-    self.lock_timeout = 300
 
     def perform(params)
       @stack = Stack.find(params[:stack_id])
 
       handle_github_errors do
-        new_commits, shared_parent = fetch_missing_commits { @stack.github_commits }
+        new_commits, shared_parent = fetch_missing_commits{ @stack.github_commits }
 
         @stack.transaction do
           shared_parent&.detach_children!
@@ -38,9 +35,10 @@ module Shipit
         if shared_parent = lookup_commit(commit.sha)
           return commits, shared_parent
         end
+
         commits.unshift(commit)
       end
-      return commits, nil
+      [commits, nil]
     end
 
     protected
