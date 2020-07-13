@@ -61,9 +61,9 @@ module Shipit
     end
 
     def refresh
-      RefreshStatusesJob.perform_async(stack_id: @stack.id)
-      RefreshCheckRunsJob.perform_async(stack_id: @stack.id)
-      GithubSyncJob.perform_async(stack_id: @stack.id)
+      RefreshStatusesJob.perform_async(@stack.id)
+      RefreshCheckRunsJob.perform_async(@stack.id)
+      GithubSyncJob.perform_async(@stack.id)
       flash[:success] = 'Refresh scheduled'
       redirect_to request.referer.presence || stack_path(@stack)
     end

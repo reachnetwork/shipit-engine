@@ -5,8 +5,8 @@ module Shipit
 
     MAX_FETCHED_COMMITS = 10
 
-    def perform(params)
-      @stack = Stack.find(params[:stack_id])
+    def perform(stack_id)
+      @stack = Stack.find(stack_id)
 
       handle_github_errors do
         new_commits, shared_parent = fetch_missing_commits{ @stack.github_commits }

@@ -132,9 +132,9 @@ module Shipit
     test "#refresh queues a RefreshStatusesJob and a GithubSyncJob" do
       request.env['HTTP_REFERER'] = stack_settings_path(@stack)
 
-      assert_enqueued_with(job: RefreshStatusesJob, args: [stack_id: @stack.id]) do
-        assert_enqueued_with(job: RefreshCheckRunsJob, args: [stack_id: @stack.id]) do
-          assert_enqueued_with(job: GithubSyncJob, args: [stack_id: @stack.id]) do
+      assert_enqueued_with(job: RefreshStatusesJob, args: [@stack.id]) do
+        assert_enqueued_with(job: RefreshCheckRunsJob, args: [@stack.id]) do
+          assert_enqueued_with(job: GithubSyncJob, args: [@stack.id]) do
             post :refresh, params: {id: @stack.to_param}
           end
         end

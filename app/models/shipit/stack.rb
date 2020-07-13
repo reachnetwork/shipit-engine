@@ -491,7 +491,7 @@ module Shipit
     end
 
     def sync_github
-      GithubSyncJob.perform_later(stack_id: id)
+      GithubSyncJob.perform_later(id)
     end
 
     private

@@ -190,7 +190,7 @@ module Shipit
         client.delete_branch(stack.github_repo_name, branch) if client.pull_requests(stack.github_repo_name, base: branch).empty?
       end
       complete!
-      GithubSyncJob.perform_async(stack_id: stack.id)
+      GithubSyncJob.perform_async(stack.id)
       ::SlackClient.async_send_msg(to: merge_requested_by.admin_user.slack_handle, message: "Your #{stack.github_repo_name} PR '#{title}' has been successfully merged!")
       true
     rescue Octokit::MethodNotAllowed # merge conflict
