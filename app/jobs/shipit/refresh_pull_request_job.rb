@@ -14,7 +14,7 @@ module Shipit
       if force_merge
         pull_request.merge!
       else
-        MergePullRequestsJob.perform_later(pull_request.stack)
+        MergePullRequestsJob.perform_async(pull_request.stack.id)
       end
     end
   end

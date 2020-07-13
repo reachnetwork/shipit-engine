@@ -1,14 +1,12 @@
 module Shipit
-  class MergePullRequestsJob < BackgroundJob
-    include BackgroundJob::Unique
-    on_duplicate :drop
+  class MergePullRequestsJob
+    include Sidekiq::Worker
+    sidekiq_options lock: :until_and_while_executing, queue: 'default'
 
     queue_as :default
 
-    self.timeout = 60
-    self.lock_timeout = 20
-
-    def perform(stack)
+    def perform(stack_id)
+      stack = Stack.find(stack_id)
       pull_requests = stack.pull_requests.to_be_merged.to_a
       pull_requests.each do |pull_request|
         pull_request.retry! unless pull_request.pending?
@@ -35,7 +33,7 @@ module Shipit
         begin
           pull_request.merge! unless pull_request.rejected?
         rescue PullRequest::NotReady
-          MergePullRequestsJob.set(wait: 10.seconds).perform_later(stack)
+          MergePullRequestsJob.perform_in(10.seconds, stack.id)
           return false
         end
       end

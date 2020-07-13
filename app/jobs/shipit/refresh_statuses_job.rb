@@ -1,6 +1,7 @@
 module Shipit
-  class RefreshStatusesJob < BackgroundJob
-    queue_as :default
+  class RefreshStatusesJob
+    include Sidekiq::Worker
+    sidekiq_options lock: :until_and_while_executing, queue: 'default'
 
     def perform(params)
       if params[:commit_id]

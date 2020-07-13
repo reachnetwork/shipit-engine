@@ -118,11 +118,11 @@ module Shipit
     end
 
     def schedule_refresh_statuses!
-      RefreshStatusesJob.perform_later(commit_id: id)
+      RefreshStatusesJob.perform_async(commit_id: id)
     end
 
     def schedule_refresh_check_runs!
-      RefreshCheckRunsJob.perform_later(commit_id: id)
+      RefreshCheckRunsJob.perform_async(commit_id: id)
     end
 
     def refresh_statuses!

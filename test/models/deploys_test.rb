@@ -244,7 +244,7 @@ module Shipit
 
     test "transitioning to success schedule a MergePullRequests job" do
       @deploy = shipit_deploys(:shipit_running)
-      assert_enqueued_with(job: MergePullRequestsJob, args: [@deploy.stack]) do
+      assert_enqueued_with(job: MergePullRequestsJob, args: [@deploy.stack.id]) do
         @deploy.complete!
       end
     end

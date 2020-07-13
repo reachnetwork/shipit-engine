@@ -3,7 +3,7 @@ require 'fileutils'
 module Shipit
   class Stack < ApplicationRecord
     module NoDeployedCommit
-      extend self
+      module_function
 
       def id
         -1
@@ -21,7 +21,7 @@ module Shipit
     REPO_OWNER_MAX_SIZE = 39
     REPO_NAME_MAX_SIZE = 100
     ENVIRONMENT_MAX_SIZE = 50
-    REQUIRED_HOOKS = %i(push status).freeze
+    REQUIRED_HOOKS = %i[push status].freeze
 
     has_many :commits, dependent: :destroy
     has_many :pull_requests, dependent: :destroy
@@ -29,7 +29,7 @@ module Shipit
     has_many :deploys
     has_many :rollbacks
     has_many :deploys_and_rollbacks,
-             -> { where(type: %w(Shipit::Deploy Shipit::Rollback)) },
+             ->{ where(type: %w[Shipit::Deploy Shipit::Rollback]) },
              class_name: 'Task',
              inverse_of: :stack
     has_many :github_hooks, dependent: :destroy, class_name: 'Shipit::GithubHook::Repo'
@@ -62,13 +62,13 @@ module Shipit
     after_commit :sync_github, on: :create
     after_commit :schedule_merges_if_necessary, on: :update
 
-    validates :repo_name, uniqueness: {scope: %i(repo_owner environment),
+    validates :repo_name, uniqueness: {scope: %i[repo_owner environment],
                                        message: 'cannot be used more than once with this environment'}
     validates :repo_owner, :repo_name, :environment, presence: true, ascii_only: true
     validates :repo_owner, format: {with: /\A[a-z0-9_\-\.]+\z/}, length: {maximum: REPO_OWNER_MAX_SIZE}
     validates :repo_name, format: {with: /\A[a-z0-9_\-\.]+\z/}, length: {maximum: REPO_NAME_MAX_SIZE}
     validates :environment, format: {with: /\A[a-z0-9\-_\:]+\z/}, length: {maximum: ENVIRONMENT_MAX_SIZE}
-    validates :deploy_url, format: {with: URI.regexp(%w(http https ssh))}, allow_blank: true
+    validates :deploy_url, format: {with: URI.regexp(%w[http https ssh])}, allow_blank: true
 
     validates :lock_reason, length: {maximum: 4096}
 
@@ -106,7 +106,7 @@ module Shipit
         since_commit_id: commit.id,
         env: definition.filter_envs(env),
         allow_concurrency: definition.allow_concurrency? || force,
-        ignored_safeties: force,
+        ignored_safeties: force
       )
       task.enqueue
       task
@@ -120,7 +120,7 @@ module Shipit
         since_commit: since_commit,
         env: filter_deploy_envs(env&.to_h || {}),
         allow_concurrency: force,
-        ignored_safeties: force || !until_commit.deployable?,
+        ignored_safeties: force || !until_commit.deployable?
       )
     end
 
@@ -164,7 +164,7 @@ module Shipit
     end
 
     def schedule_merges
-      MergePullRequestsJob.perform_later(self)
+      MergePullRequestsJob.perform_async(self.id)
     end
 
     def next_commit_to_deploy
@@ -183,8 +183,8 @@ module Shipit
 
     def async_refresh_deployed_revision
       async_refresh_deployed_revision!
-    rescue => error
-      logger.warn "Failed to dispatch FetchDeployedRevisionJob: [#{error.class.name}] #{error.message}"
+    rescue StandardError => e
+      logger.warn "Failed to dispatch FetchDeployedRevisionJob: [#{e.class.name}] #{e.message}"
     end
 
     def async_refresh_deployed_revision!
@@ -206,7 +206,7 @@ module Shipit
         deploys.create!(
           until_commit: actual_deployed_commit,
           since_commit: last_deployed_commit.presence || commits.first,
-          status: 'success',
+          status: 'success'
         )
       end
     end
@@ -217,8 +217,9 @@ module Shipit
 
     def merge_status(backlog_leniency_factor: 2.0)
       return 'locked' if locked?
-      return 'failure' if %w(failure error).freeze.include?(branch_status)
+      return 'failure' if %w[failure error].freeze.include?(branch_status)
       return 'backlogged' if backlogged?(backlog_leniency_factor: backlog_leniency_factor)
+
       'success'
     end
 
@@ -229,13 +230,14 @@ module Shipit
     def branch_status
       undeployed_commits.each do |commit|
         state = commit.status.simple_state
-        return state unless %w(pending unknown missing).freeze.include?(state)
+        return state unless %w[pending unknown missing].freeze.include?(state)
       end
       'pending'
     end
 
     def status
       return :deploying if active_task?
+
       :default
     end
 
@@ -244,16 +246,16 @@ module Shipit
       affected_rows = 0
 
       until backlog.empty?
-        backlog = backlog.drop_while { |c| !c.revert? }
+        backlog = backlog.drop_while{ |c| !c.revert? }
         revert = backlog.shift
         next if revert.nil?
 
-        commits_to_lock = backlog.reverse.drop_while { |c| !revert.revert_of?(c) }
+        commits_to_lock = backlog.reverse.drop_while{ |c| !revert.revert_of?(c) }
         next if commits_to_lock.empty?
 
-        affected_rows += commits
-                         .where(id: commits_to_lock.map(&:id).uniq)
-                         .lock_all(revert.author)
+        affected_rows += commits.
+                         where(id: commits_to_lock.map(&:id).uniq).
+                         lock_all(revert.author)
       end
 
       touch if affected_rows > 1
@@ -265,9 +267,7 @@ module Shipit
       end
 
       commits_to_deploy = commits.reject(&:active?)
-      if maximum_commits_per_deploy
-        commits_to_deploy = commits_to_deploy.reverse.slice(0, maximum_commits_per_deploy).reverse
-      end
+      commits_to_deploy = commits_to_deploy.reverse.slice(0, maximum_commits_per_deploy).reverse if maximum_commits_per_deploy
       commits_to_deploy.find(&:deployable?)
     end
 
@@ -339,6 +339,7 @@ module Shipit
       tmp_path = "#{git_path}-#{SecureRandom.hex}"
       acquire_git_cache_lock do
         return unless File.exist?(git_path)
+
         File.rename(git_path, tmp_path)
       end
       FileUtils.rm_rf(tmp_path)
@@ -350,7 +351,9 @@ module Shipit
 
     def github_commits
       rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::Conflict], retries_exhausted_raises_error: false, return_value_on_error: []) do
+                                                             Octokit::Unauthorized,
+                                                             Octokit::InternalServerError,
+                                                             Octokit::Conflict], retries_exhausted_raises_error: false, return_value_on_error: []) do
         handle_github_redirections do
           Shipit.github.api(installation_id).commits(github_repo_name, sha: branch)
         end
@@ -370,9 +373,7 @@ module Shipit
 
     def refresh_repository!
       resource = Shipit.github.api(installation_id).repo(github_repo_name)
-      if resource.try(:message) == 'Moved Permanently'
-        resource = Shipit.github.api(installation_id).get(resource.url)
-      end
+      resource = Shipit.github.api(installation_id).get(resource.url) if resource.try(:message) == 'Moved Permanently'
       update!(repo_owner: resource.owner.login, repo_name: resource.name)
     end
 
@@ -382,6 +383,7 @@ module Shipit
 
     def active_task
       return @active_task if defined?(@active_task)
+
       @active_task ||= tasks.current
     end
 
@@ -407,7 +409,7 @@ module Shipit
       where(
         repo_owner: repo_owner.downcase,
         repo_name: repo_name.downcase,
-        environment: environment,
+        environment: environment
       ).first!
     end
 
@@ -431,7 +433,7 @@ module Shipit
       cached_deploy_spec.review_checks.present?
     end
 
-    def update_undeployed_commits_count(after_commit = nil)
+    def update_undeployed_commits_count(after_commit=nil)
       after_commit ||= last_deployed_commit
       undeployed_commits = commits.reachable.newer_than(after_commit).count
       update(undeployed_commits_count: undeployed_commits)
@@ -441,7 +443,7 @@ module Shipit
       Pubsubstub.publish(
         "stack.#{id}",
         {id: id, updated_at: updated_at}.to_json,
-        name: 'update',
+        name: 'update'
       )
     end
 
@@ -518,17 +520,13 @@ module Shipit
     end
 
     def schedule_merges_if_necessary
-      if previous_changes.include?('lock_reason') && previous_changes['lock_reason'].last.blank?
-        schedule_merges
-      end
+      schedule_merges if previous_changes.include?('lock_reason') && previous_changes['lock_reason'].last.blank?
     end
 
     def emit_lock_hooks
       return unless previous_changes.include?('lock_reason')
 
-      lock_details = if previous_changes['lock_reason'].last.blank?
-        {from: previous_changes['locked_since'].first, until: Time.zone.now}
-      end
+      lock_details = ({from: previous_changes['locked_since'].first, until: Time.zone.now} if previous_changes['lock_reason'].last.blank?)
 
       Hook.emit(:lock, self, locked: locked?, lock_details: lock_details, stack: self)
     end
@@ -538,7 +536,7 @@ module Shipit
     end
 
     def emit_updated_hooks
-      changed = !(previous_changes.keys - %w(updated_at)).empty?
+      changed = !(previous_changes.keys - %w[updated_at]).empty?
       Hook.emit(:stack, self, action: :updated, stack: self) if changed
     end
 

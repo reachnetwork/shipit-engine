@@ -606,7 +606,7 @@ module Shipit
       )
 
       assert_equal 'failure', commit.state
-      assert_enqueued_with(job: MergePullRequestsJob, args: [@commit.stack]) do
+      assert_enqueued_with(job: MergePullRequestsJob, args: [@commit.stack.id]) do
         commit.create_status_from_github!(github_status)
         assert_equal 'success', commit.state
       end

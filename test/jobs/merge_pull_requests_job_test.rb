@@ -17,15 +17,15 @@ module Shipit
 
     test "#perform rejects unmergeable PRs and merge the others" do
       PullRequest.any_instance.stubs(:refresh!)
-      FakeWeb.register_uri(:put, "#{@pending_pr.api_url}/merge", status: %w(200 OK), body: {
+      FakeWeb.register_uri(:put, "#{@pending_pr.api_url}/merge", status: %w[200 OK], body: {
         sha: "6dcb09b5b57875f334f61aebed695e2e4193db5e",
         merged: true,
-        message: "Pull Request successfully merged",
+        message: "Pull Request successfully merged"
       }.to_json)
       branch_url = "https://api.github.com/repos/shopify/shipit-engine/git/refs/heads/feature-62"
-      FakeWeb.register_uri(:delete, branch_url, status: %w(204 No content))
+      FakeWeb.register_uri(:delete, branch_url, status: %w[204 No content])
       pulls_url = "https://api.github.com/repos/shopify/shipit-engine/pulls?base=feature-62"
-      FakeWeb.register_uri(:get, pulls_url, status: %w(200 OK), body: '[]')
+      FakeWeb.register_uri(:get, pulls_url, status: %w[200 OK], body: '[]')
 
       @job.perform(@stack)
 
@@ -35,9 +35,9 @@ module Shipit
 
     test "#perform rejects PRs if the merge attempt fails" do
       PullRequest.any_instance.stubs(:refresh!)
-      FakeWeb.register_uri(:put, "#{@pending_pr.api_url}/merge", status: %w(405 Method not allowed), body: {
+      FakeWeb.register_uri(:put, "#{@pending_pr.api_url}/merge", status: %w[405 Method not allowed], body: {
         message: "Pull Request is not mergeable",
-        documentation_url: "https://developer.github.com/v3/pulls/#merge-a-pull-request-merge-button",
+        documentation_url: "https://developer.github.com/v3/pulls/#merge-a-pull-request-merge-button"
       }.to_json)
 
       @job.perform(@stack)
@@ -64,7 +64,7 @@ module Shipit
 
       @pending_pr.update!(mergeable: nil)
       assert_enqueued_with(job: MergePullRequestsJob) do
-        @job.perform(@stack)
+        @job.perform(@stack.id)
       end
       assert_predicate @pending_pr.reload, :pending?
     end

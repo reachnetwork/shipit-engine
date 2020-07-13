@@ -352,7 +352,7 @@ module Shipit
         @stack.update(lock_reason: "Just for fun", lock_author: shipit_users(:walrus))
       end
 
-      assert_enqueued_with(job: MergePullRequestsJob, args: [@stack]) do
+      assert_enqueued_with(job: MergePullRequestsJob, args: [@stack.id]) do
         @stack.update(lock_reason: nil)
       end
     end
