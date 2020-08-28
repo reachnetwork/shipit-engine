@@ -3,7 +3,7 @@ module Shipit
     include Sidekiq::Worker
     sidekiq_options lock: :until_and_while_executing, queue: 'default'
 
-    def perform(stack_id)
+    def perform(stack_id, _type="merge-pr")
       stack = Stack.find(stack_id)
       pull_requests = stack.pull_requests.to_be_merged.to_a
       pull_requests.each do |pull_request|
