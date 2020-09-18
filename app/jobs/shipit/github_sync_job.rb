@@ -6,7 +6,7 @@ module Shipit
     MAX_FETCHED_COMMITS = 10
 
     def perform(stack_id)
-      @stack = Stack.find(stack_id)
+      @stack = ::Shipit::Stack.find(stack_id)
 
       handle_github_errors do
         new_commits, shared_parent = fetch_missing_commits{ @stack.github_commits }
@@ -19,7 +19,7 @@ module Shipit
           @stack.lock_reverted_commits! if appended_commits.any?(&:revert?)
         end
       end
-      CacheDeploySpecJob.perform_later(@stack)
+      ::Shipit::CacheDeploySpecJob.perform_later(@stack)
     end
 
     def append_commit(gh_commit)
@@ -28,7 +28,7 @@ module Shipit
 
     def fetch_missing_commits(&block)
       commits = []
-      iterator = Shipit::FirstParentCommitsIterator.new(@stack.installation_id, &block)
+      iterator = ::Shipit::FirstParentCommitsIterator.new(@stack.installation_id, &block)
       iterator.each_with_index do |commit, index|
         break if index >= MAX_FETCHED_COMMITS
 
