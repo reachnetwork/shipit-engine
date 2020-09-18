@@ -1,4 +1,4 @@
-$LOAD_PATH.push File.expand_path('../lib', __FILE__)
+$LOAD_PATH.push File.expand_path('lib', __dir__)
 
 # Maintain your gem's version:
 require 'shipit/version'
@@ -40,7 +40,7 @@ Gem::Specification.new do |s|
   s.add_dependency 'safe_yaml', '~> 1.0.4'
   s.add_dependency 'sass-rails', '~> 5.0'
   s.add_dependency 'securecompare', '~> 1.0.0'
-  s.add_dependency 'sidekiq-unique-jobs', '~> 6.0'
+  s.add_dependency 'sidekiq-unique-jobs', '~> 5.0'
   s.add_dependency 'sprockets-rails', '>= 2.3.2'
   s.add_dependency 'state_machines-activerecord', '~> 0.5.0'
   s.add_dependency 'validate_url', '~> 1.0.0'
