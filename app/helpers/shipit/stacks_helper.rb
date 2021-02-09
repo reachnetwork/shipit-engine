@@ -3,7 +3,7 @@ module Shipit
     def redeploy_button(deployed_commit)
       commit = UndeployedCommit.new(deployed_commit, index: 0)
       url = new_stack_deploy_path(commit.stack, sha: commit.sha)
-      classes = %W(btn btn--primary deploy-action #{commit.state})
+      classes = %W[btn btn--primary deploy-action #{commit.state}]
 
       unless commit.stack.deployable?
         classes.push(bypass_safeties? ? 'btn--warning' : 'btn--disabled')
@@ -18,15 +18,13 @@ module Shipit
 
     def deploy_button(commit)
       url = new_stack_deploy_path(commit.stack, sha: commit.sha)
-      classes = %W(btn btn--primary deploy-action #{commit.state})
+      classes = %W[btn btn--primary deploy-action #{commit.state}]
       deploy_state = commit.deploy_state(bypass_safeties?)
       data = {}
 
       if commit.deploy_disallowed?
         classes.push(bypass_safeties? ? 'btn--warning' : 'btn--disabled')
-        if deploy_state == 'blocked'
-          data[:tooltip] = t('deploy_button.hint.blocked')
-        end
+        data[:tooltip] = t('deploy_button.hint.blocked') if deploy_state == 'blocked'
       elsif commit.deploy_discouraged?
         classes.push('btn--warning')
         data[:tooltip] = t('deploy_button.hint.max_commits', maximum: commit.stack.maximum_commits_per_deploy)
@@ -44,6 +42,8 @@ module Shipit
     end
 
     def render_commit_message(pull_request_or_commit)
+      return if pull_request_or_commit.nil?
+
       message = pull_request_or_commit.title.to_s
       content_tag(:span, emojify(message), class: 'event-message')
     end
