@@ -1,6 +1,6 @@
 <%- read_only ||= false -%>
 
-<li class="task deploy" id="task-<%= deploy.id %>" data-status="<%= deploy.status %>" data-release-status="<%= deploy.last_release_status.state %>">
+<li class="task deploy" id="task-<%= deploy.id %>" data-status="<%= deploy.status %>" data-release-status="<%= deploy.last_release_status.state rescue nil %>">
   <% cache deploy do %>
     <% cache deploy.author do %>
       <%= render 'shipit/shared/author', author: deploy.author %>
