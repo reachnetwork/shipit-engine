@@ -17,7 +17,7 @@
       </span>
       <p class="commit-meta">
         <% if @stack.release_status? %>
-          <%= link_to '#', data: {tooltip: deploy.last_release_status.description.presence rescue nil} do %>
+          <%= link_to '#', data: {tooltip: true} do %>
             <i class="deploy-status__icon"></i>
           <% end %>
         <% end %>
