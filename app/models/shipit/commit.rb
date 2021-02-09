@@ -6,8 +6,8 @@ module Shipit
 
     belongs_to :stack
     has_many :deploys
-    has_many :statuses, -> { order(created_at: :desc) }, dependent: :destroy, inverse_of: :commit
-    has_many :check_runs, -> { order(created_at: :desc) }, dependent: :destroy, inverse_of: :commit
+    has_many :statuses, ->{ order(created_at: :desc) }, dependent: :destroy, inverse_of: :commit
+    has_many :check_runs, ->{ order(created_at: :desc) }, dependent: :destroy, inverse_of: :commit
     has_many :commit_deployments, dependent: :destroy
     has_many :release_statuses, dependent: :destroy
     belongs_to :pull_request, inverse_of: :merge_commit, optional: true
@@ -15,8 +15,8 @@ module Shipit
     deferred_touch stack: :updated_at
 
     before_create :identify_pull_request
-    after_commit { broadcast_update }
-    after_create { stack.update_undeployed_commits_count }
+    after_commit{ broadcast_update }
+    after_create{ stack.update_undeployed_commits_count }
 
     after_commit :schedule_refresh_statuses!, :schedule_refresh_check_runs!, :schedule_fetch_stats!,
                  :schedule_continuous_delivery, on: :create
@@ -37,28 +37,32 @@ module Shipit
       super || AnonymousUser.new
     end
 
-    scope :reachable, -> { where(detached: false) }
+    scope :reachable, ->{ where(detached: false) }
 
     delegate :broadcast_update, :github_repo_name, :hidden_statuses, :required_statuses, :blocking_statuses,
              :soft_failing_statuses, to: :stack
 
     def self.newer_than(commit)
       return all unless commit
+
       where('id > ?', commit.try(:id) || commit)
     end
 
     def self.older_than(commit)
       return all unless commit
+
       where('id < ?', commit.try(:id) || commit)
     end
 
     def self.since(commit)
       return all unless commit
+
       where('id >= ?', commit.try(:id) || commit)
     end
 
     def self.until(commit)
       return all unless commit
+
       where('id <= ?', commit.try(:id) || commit)
     end
 
@@ -71,12 +75,11 @@ module Shipit
     end
 
     def self.by_sha(sha)
-      if sha.to_s.size < 6
-        raise AmbiguousRevision, "Short SHA1 #{sha} is ambiguous (too short)"
-      end
+      raise AmbiguousRevision, "Short SHA1 #{sha} is ambiguous (too short)" if sha.to_s.size < 6
 
       commits = where('sha like ?', "#{sha}%").take(2)
       raise AmbiguousRevision, "Short SHA1 #{sha} is ambiguous (matches multiple commits)" if commits.size > 1
+
       commits.first
     end
 
@@ -93,12 +96,12 @@ module Shipit
       new(
         sha: commit.sha,
         message: commit.commit.message,
-        author:  author,
+        author: author,
         committer: committer,
         committed_at: commit.commit.committer.date,
         authored_at: commit.commit.author.date,
         additions: commit.stats&.additions,
-        deletions: commit.stats&.deletions,
+        deletions: commit.stats&.deletions
       )
     end
 
@@ -107,7 +110,7 @@ module Shipit
       super
     end
 
-    def self.create_from_github!(commit, extra_attributes = {})
+    def self.create_from_github!(commit, extra_attributes={})
       record = from_github(commit)
       record.update!(extra_attributes)
       record
@@ -128,7 +131,11 @@ module Shipit
     def refresh_statuses!
       github_statuses = stack.handle_github_redirections do
         rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-          Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
+                                                               Octokit::Unauthorized,
+                                                               Octokit::InternalServerError,
+                                                               Octokit::ServerError,
+                                                               Octokit::Conflict,
+                                                               Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
           Shipit.github.api(stack.installation_id).statuses(github_repo_name, sha)
         end
       end
@@ -146,7 +153,11 @@ module Shipit
     def refresh_check_runs!
       response = stack.handle_github_redirections do
         rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-          Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
+                                                               Octokit::Unauthorized,
+                                                               Octokit::InternalServerError,
+                                                               Octokit::ServerError,
+                                                               Octokit::Conflict,
+                                                               Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
           Shipit.github.api(stack.installation_id).check_runs(github_repo_name, sha)
         end
       end
@@ -156,7 +167,6 @@ module Shipit
       response.check_runs.each do |check_run|
         create_or_update_check_run_from_github!(check_run)
       end
-
     rescue Octokit::UnprocessableEntity
       destroy!
     end
@@ -178,7 +188,7 @@ module Shipit
         user: user,
         state: state,
         target_url: target_url,
-        description: description,
+        description: description
       )
     end
 
@@ -196,7 +206,7 @@ module Shipit
       if active_task.since_commit == active_task.until_commit
         id == active_task.since_commit.id
       else
-        id > active_task.since_commit.id && id <= active_task.until_commit.id
+        id > active_task.since_commit.id && id <= active_task.until_commit&.id.to_i
       end
     end
 
@@ -256,13 +266,18 @@ module Shipit
 
     def schedule_continuous_delivery
       return unless deployable? && stack.continuous_deployment? && stack.deployable?
+
       ContinuousDeliveryJob.perform_async(stack.id)
     end
 
     def github_commit
       retry_count = 0
       rescue_retry(sleep_between_attempts: 15, rescue_from: [Octokit::BadGateway,
-        Octokit::Unauthorized, Octokit::InternalServerError, Octokit::ServerError, Octokit::Conflict, Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
+                                                             Octokit::Unauthorized,
+                                                             Octokit::InternalServerError,
+                                                             Octokit::ServerError,
+                                                             Octokit::Conflict,
+                                                             Faraday::ConnectionFailed], retries_exhausted_raises_error: false) do
         @github_commit ||= Shipit.github.api(stack.installation_id).commit(github_repo_name, sha)
       end
     end
@@ -276,7 +291,7 @@ module Shipit
 
       update!(
         additions: github_commit.stats&.additions,
-        deletions: github_commit.stats&.deletions,
+        deletions: github_commit.stats&.deletions
       )
     end
 
@@ -294,6 +309,7 @@ module Shipit
 
     def identify_pull_request
       return unless message_parser.pull_request?
+
       if pull_request = stack.pull_requests.find_by(number: message_parser.pull_request_number)
         self.pull_request = pull_request
         self.pull_request_number = pull_request.number
@@ -316,14 +332,14 @@ module Shipit
     def lock(user)
       update!(
         locked: true,
-        lock_author_id: user.id,
+        lock_author_id: user.id
       )
     end
 
     def self.lock_all(user)
       update_all(
         locked: true,
-        lock_author_id: user.id,
+        lock_author_id: user.id
       )
     end
 
@@ -347,18 +363,12 @@ module Shipit
 
       unless already_deployed
         payload = {commit: self, stack: stack, status: new_status.state}
-        if previous_status != new_status
-          Hook.emit(:commit_status, stack, payload.merge(commit_status: new_status))
-        end
+        Hook.emit(:commit_status, stack, payload.merge(commit_status: new_status)) if previous_status != new_status
       end
 
       if previous_status.simple_state != new_status.simple_state
-        if !already_deployed && (!new_status.pending? || previous_status.unknown?)
-          Hook.emit(:deployable_status, stack, payload.merge(deployable_status: new_status))
-        end
-        if new_status.pending? || new_status.success?
-          stack.schedule_merges
-        end
+        Hook.emit(:deployable_status, stack, payload.merge(deployable_status: new_status)) if !already_deployed && (!new_status.pending? || previous_status.unknown?)
+        stack.schedule_merges if new_status.pending? || new_status.success?
       end
       new_status
     end
