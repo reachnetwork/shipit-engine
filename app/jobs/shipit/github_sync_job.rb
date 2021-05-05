@@ -19,7 +19,7 @@ module Shipit
           @stack.lock_reverted_commits! if appended_commits.any?(&:revert?)
         end
       end
-      ::Shipit::CacheDeploySpecJob.perform_later(@stack)
+      ::Shipit::CacheDeploySpecJob.perform_async(@stack.id)
     end
 
     def append_commit(gh_commit)

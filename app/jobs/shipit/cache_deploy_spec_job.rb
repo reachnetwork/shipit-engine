@@ -1,14 +1,13 @@
 module Shipit
-  class CacheDeploySpecJob < BackgroundJob
-    include BackgroundJob::Unique
-    on_duplicate :drop
-
-    queue_as :deploys
+  class CacheDeploySpecJob
+    include Sidekiq::Worker
+    sidekiq_options lock: :until_and_while_executing, queue: 'deploys'
 
     self.timeout = 60
     self.lock_timeout = 20
 
-    def perform(stack)
+    def perform(stack_id)
+      stack = Stack.find(stack_id)
       return if stack.inaccessible?
 
       commands = Commands.for(stack)

@@ -1,9 +1,10 @@
 module Shipit
-  class PerformTaskJob < BackgroundJob
-    queue_as :deploys
+  class PerformTaskJob
+    include Sidekiq::Worker
+    sidekiq_options lock: :until_and_while_executing, queue: 'deploys'
 
-    def perform(task)
-      @task = task
+    def perform(task_id)
+      @task = Task.find(task_id)
       @commands = Commands.for(@task)
       unless @task.pending?
         logger.error("Task ##{@task.id} already in `#{@task.status}` state. Aborting.")
@@ -36,26 +37,26 @@ module Shipit
       if github_pr_resp.present?
         uri = begin
           URI.parse(github_pr_resp&.body)
-              rescue URI::InvalidURIError
+        rescue URI::InvalidURIError
           # Skip invalid links
         end
       end
-      message[:text] = "<#{uri}|Jira Ticket>" if uri.present? && uri.to_s.include?("atlassian")
+      message[:text] = "<#{uri}|Jira Ticket>" if uri.present? && uri.to_s.include?('atlassian')
 
       ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: ":heavy_check_mark: SUCCESS: *Deploy of #{stack.repo_name.titleize} #{stack.environment} completed!* #{[':amaze:', ':party_parrot:', ':tomatodance:', ':hands:'].sample}", attachments: [message])
-    rescue Command::TimedOut => error
-      @task.write("\n#{error.message}\n")
-      @task.report_timeout!(error)
+    rescue Command::TimedOut => e
+      @task.write("\n#{e.message}\n")
+      @task.report_timeout!(e)
       ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: ":x: ERROR: *Deploy of #{stack.repo_name.titleize} #{stack.environment} timed out!* #{[':dumpster_fire:', ':oh_no:', ':dead:'].sample}", attachments: [message])
-    rescue Command::Error => error
-      @task.write("\n#{error.message}\n")
-      @task.report_failure!(error)
+    rescue Command::Error => e
+      @task.write("\n#{e.message}\n")
+      @task.report_failure!(e)
       ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: ":x: ERROR: *Deploy of #{stack.repo_name.titleize} #{stack.environment} failed!* #{[':dumpster_fire:', ':oh_no:', ':dead:'].sample}", attachments: [message])
-    rescue StandardError => error
-      @task.report_error!(error)
+    rescue StandardError => e
+      @task.report_error!(e)
       ::SlackClient.async_send_msg(to: stack.deploy_slack_channel, message: ":x: ERROR: *Deploy of #{stack.repo_name.titleize} #{stack.environment} errored!* #{[':dumpster_fire:', ':oh_no:', ':dead:'].sample}", attachments: [message])
-    rescue StandardError => error
-      @task.report_error!(error)
+    rescue StandardError => e
+      @task.report_error!(e)
       raise
     end
 
@@ -67,8 +68,8 @@ module Shipit
       else
         @task.write("Can't abort, no recorded pid, WTF?\n")
       end
-    rescue SystemCallError => error
-      @task.write("kill: (#{pid}) - #{error.message}\n")
+    rescue SystemCallError => e
+      @task.write("kill: (#{pid}) - #{e.message}\n")
     end
 
     def check_for_abort
@@ -97,7 +98,7 @@ module Shipit
     end
 
     def capture_all!(commands)
-      commands.map { |c| capture!(c) }
+      commands.map{ |c| capture!(c) }
     end
 
     def capture!(command)

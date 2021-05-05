@@ -5,9 +5,9 @@ module Shipit
     ConcurrentTaskRunning = Class.new(StandardError)
 
     PRESENCE_CHECK_TIMEOUT = 15
-    ACTIVE_STATUSES = %w(pending running aborting).freeze
-    COMPLETED_STATUSES = %w(success flapping faulty validating).freeze
-    UNSUCCESSFUL_STATUSES = %w(error failed aborted flapping timedout faulty).freeze
+    ACTIVE_STATUSES = %w[pending running aborting].freeze
+    COMPLETED_STATUSES = %w[success flapping faulty validating].freeze
+    UNSUCCESSFUL_STATUSES = %w[error failed aborted flapping timedout faulty].freeze
 
     attr_accessor :pid
 
@@ -21,18 +21,18 @@ module Shipit
 
     deferred_touch stack: :updated_at
 
-    has_many :chunks, -> { order(:id) }, class_name: 'OutputChunk', dependent: :delete_all, inverse_of: :task
+    has_many :chunks, ->{ order(:id) }, class_name: 'OutputChunk', dependent: :delete_all, inverse_of: :task
 
     serialize :definition, TaskDefinition
     serialize :env, Hash
 
-    scope :success, -> { where(status: 'success') }
-    scope :completed, -> { where(status: COMPLETED_STATUSES) }
-    scope :active, -> { where(status: ACTIVE_STATUSES) }
-    scope :exclusive, -> { where(allow_concurrency: false) }
-    scope :unsuccessful, -> { where(status: UNSUCCESSFUL_STATUSES) }
+    scope :success, ->{ where(status: 'success') }
+    scope :completed, ->{ where(status: COMPLETED_STATUSES) }
+    scope :active, ->{ where(status: ACTIVE_STATUSES) }
+    scope :exclusive, ->{ where(allow_concurrency: false) }
+    scope :unsuccessful, ->{ where(status: UNSUCCESSFUL_STATUSES) }
 
-    scope :due_for_rollup, -> { completed.where(rolled_up: false).where('created_at <= ?', 1.hour.ago) }
+    scope :due_for_rollup, ->{ completed.where(rolled_up: false).where('created_at <= ?', 1.hour.ago) }
 
     after_save :record_status_change
     after_create :prevent_concurrency, unless: :allow_concurrency?
@@ -40,7 +40,7 @@ module Shipit
 
     class << self
       def durations
-        pluck(:started_at, :ended_at).select { |s, e| s && e }.map { |s, e| e - s }
+        pluck(:started_at, :ended_at).select{ |s, e| s && e }.map{ |s, e| e - s }
       end
 
       def last_completed
@@ -61,7 +61,7 @@ module Shipit
         task.ended_at ||= Time.now.utc
       end
 
-      after_transition any => %i(success failed error timedout) do |task|
+      after_transition any => %i[success failed error timedout] do |task|
         task.async_refresh_deployed_revision
       end
 
@@ -78,19 +78,19 @@ module Shipit
       end
 
       event :failure do
-        transition %i(running flapping) => :failed
+        transition %i[running flapping] => :failed
       end
 
       event :complete do
-        transition %i(running flapping validating faulty) => :success
+        transition %i[running flapping validating faulty] => :success
       end
 
       event :enter_validation do
-        transition %i(running flapping) => :validating
+        transition %i[running flapping] => :validating
       end
 
       event :mark_faulty do
-        transition %i(validating success) => :faulty
+        transition %i[validating success] => :faulty
       end
 
       event :error do
@@ -102,7 +102,7 @@ module Shipit
       end
 
       event :aborting do
-        transition all - %i(aborted) => :aborting
+        transition all - %i[aborted] => :aborting
       end
 
       event :aborted do
@@ -110,7 +110,7 @@ module Shipit
       end
 
       event :flap do
-        transition %i(failed error timedout success) => :flapping
+        transition %i[failed error timedout success] => :flapping
       end
 
       state :pending
@@ -172,8 +172,9 @@ module Shipit
     end
 
     def enqueue
-      raise "only persisted jobs can be enqueued" unless persisted?
-      PerformTaskJob.perform_later(self)
+      raise 'only persisted jobs can be enqueued' unless persisted?
+
+      PerformTaskJob.perform_async(self.id)
     end
 
     def write(text)
@@ -266,7 +267,7 @@ module Shipit
       end
     end
 
-    def abort!(rollback_once_aborted: false, aborted_by:)
+    def abort!(aborted_by:, rollback_once_aborted: false)
       update!(rollback_once_aborted: rollback_once_aborted, aborted_by_id: aborted_by.id)
 
       if alive?
@@ -295,6 +296,7 @@ module Shipit
 
     def emit_hooks
       return unless @status_changed
+
       @status_changed = nil
       Hook.emit(hook_event, stack, hook_event => self, status: status, stack: stack)
     end
