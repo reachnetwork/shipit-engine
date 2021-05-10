@@ -3,9 +3,6 @@ module Shipit
     include Sidekiq::Worker
     sidekiq_options lock: :until_and_while_executing, queue: 'deploys'
 
-    self.timeout = 60
-    self.lock_timeout = 20
-
     def perform(stack_id)
       stack = Stack.find(stack_id)
       return if stack.inaccessible?
