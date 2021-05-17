@@ -1,7 +1,7 @@
 module Shipit
   class GithubSyncJob
     include Sidekiq::Worker
-    sidekiq_options lock: :until_and_while_executing, queue: 'default'
+    sidekiq_options lock: :until_and_while_executing, queue: 'github'
 
     MAX_FETCHED_COMMITS = 10
 
@@ -19,7 +19,7 @@ module Shipit
           @stack.lock_reverted_commits! if appended_commits.any?(&:revert?)
         end
       end
-      ::Shipit::CacheDeploySpecJob.perform_async(@stack.id)
+      # ::Shipit::CacheDeploySpecJob.perform_async(@stack.id)
     end
 
     def append_commit(gh_commit)
