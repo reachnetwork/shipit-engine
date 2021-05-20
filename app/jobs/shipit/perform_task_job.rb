@@ -1,7 +1,7 @@
 module Shipit
   class PerformTaskJob
     include Sidekiq::Worker
-    sidekiq_options lock: :until_executing, queue: 'deploys'
+    sidekiq_options lock: :until_executed, queue: 'deploys'
 
     def perform(task_id)
       @task = Task.find(task_id)

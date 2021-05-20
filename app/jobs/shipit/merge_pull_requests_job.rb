@@ -1,7 +1,7 @@
 module Shipit
   class MergePullRequestsJob
     include Sidekiq::Worker
-    sidekiq_options lock: :until_executing, queue: 'default'
+    sidekiq_options lock: :until_executed, queue: 'default'
 
     def perform(stack_id, _type='merge-pr')
       stack = Stack.find(stack_id)

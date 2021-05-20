@@ -1,7 +1,7 @@
 module Shipit
   class RefreshStatusesJob
     include Sidekiq::Worker
-    sidekiq_options lock: :until_executing, queue: 'default'
+    sidekiq_options lock: :until_executed, queue: 'default'
 
     def perform(stack_id=nil, commit_id=nil)
       if commit_id
