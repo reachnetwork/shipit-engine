@@ -1,9 +1,9 @@
 module Shipit
   class MergePullRequestsJob
     include Sidekiq::Worker
-    sidekiq_options lock: :until_and_while_executing, queue: 'default'
+    sidekiq_options lock: :until_executing, queue: 'default'
 
-    def perform(stack_id, _type="merge-pr")
+    def perform(stack_id, _type='merge-pr')
       stack = Stack.find(stack_id)
       pull_requests = stack.pull_requests.to_be_merged.to_a
       pull_requests.each do |pull_request|
@@ -20,7 +20,7 @@ module Shipit
         pr.pending? ||
           (
             pr.rejected? &&
-            ["merge_conflict", "ci_failing"].include?(pr.rejection_reason) &&
+            ['merge_conflict', 'ci_failing'].include?(pr.rejection_reason) &&
             (pr.merge_requested_at + 6.hours).future?
           )
       end.each do |pull_request|
