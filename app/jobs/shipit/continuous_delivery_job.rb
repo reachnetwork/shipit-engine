@@ -1,7 +1,7 @@
 module Shipit
   class ContinuousDeliveryJob
     include Sidekiq::Worker
-    sidekiq_options lock: :until_and_while_executing, queue: 'default'
+    sidekiq_options lock: :until_and_while_executing, queue: 'continuous_delivery'
 
     def perform(stack_id)
       stack = Stack.find(stack_id)
