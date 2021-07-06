@@ -1,7 +1,7 @@
 module Shipit
   class GithubSyncJob
     include Sidekiq::Worker
-    sidekiq_options lock: :until_executed, queue: 'default'
+    sidekiq_options lock: :until_and_while_executing, queue: 'default'
 
     MAX_FETCHED_COMMITS = 10
 

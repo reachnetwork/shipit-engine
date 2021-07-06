@@ -1,7 +1,7 @@
 module Shipit
   class CacheDeploySpecJob
     include Sidekiq::Worker
-    sidekiq_options lock: :until_executed, queue: 'deploys'
+    sidekiq_options lock: :until_and_while_executing, queue: 'deploys'
 
     def perform(stack_id)
       stack = Stack.find(stack_id)
